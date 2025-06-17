@@ -45,11 +45,11 @@ export class WallsService {
       throw new BadRequestException('A wall already exists between these farms');
     }
 
-    // Calculate distance and validate it's within 40 meters
+    // Calculate distance and validate it's within 60 meters
     const distance = this.wallGeometryService.calculateDistance(fromFarm, toFarm);
-    if (distance > 40) {
+    if (distance > 60) {
       throw new BadRequestException(
-        `Distance between farms is ${distance.toFixed(1)}m. Walls can only span up to 40 meters.`
+        `Distance between farms is ${distance.toFixed(1)}m. Walls can only span up to 60 meters.`
       );
     }
 

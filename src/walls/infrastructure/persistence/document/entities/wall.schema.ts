@@ -37,7 +37,7 @@ export class WallSchemaClass extends EntityDocumentHelper {
     type: Number,
     required: true,
     min: 0,
-    max: 40, // Maximum 40 meters
+    max: 60, // Maximum 60 meters
   })
   distance: number;
 
