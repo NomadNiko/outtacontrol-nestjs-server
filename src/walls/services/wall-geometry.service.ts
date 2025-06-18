@@ -85,6 +85,12 @@ export class WallGeometryService {
     };
 
     for (const wall of existingWalls) {
+      // Skip walls with missing farm references
+      if (!wall.fromFarm || !wall.toFarm || !wall.fromFarm.id || !wall.toFarm.id) {
+        console.warn('Skipping wall with missing farm references:', wall.id);
+        continue;
+      }
+
       // Skip if the walls share a farm (they can connect at endpoints)
       if (
         wall.fromFarm.id === newWall.fromFarm.id ||
@@ -123,6 +129,12 @@ export class WallGeometryService {
     
     // Add existing walls to graph
     for (const wall of existingWalls) {
+      // Skip walls with missing farm references
+      if (!wall.fromFarm || !wall.toFarm || !wall.fromFarm.id || !wall.toFarm.id) {
+        console.warn('Skipping wall with missing farm references:', wall.id);
+        continue;
+      }
+
       const fromId = String(wall.fromFarm.id);
       const toId = String(wall.toFarm.id);
       
@@ -173,6 +185,12 @@ export class WallGeometryService {
     const graph = new Map<string, Set<string>>();
     
     for (const wall of existingWalls) {
+      // Skip walls with missing farm references
+      if (!wall.fromFarm || !wall.toFarm || !wall.fromFarm.id || !wall.toFarm.id) {
+        console.warn('Skipping wall with missing farm references:', wall.id);
+        continue;
+      }
+
       const fromId = String(wall.fromFarm.id);
       const toId = String(wall.toFarm.id);
       

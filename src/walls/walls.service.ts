@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException, Inject, forwardRef } from '@nestjs/common';
 import { IPaginationOptions } from '../utils/types/pagination-options';
 import { Wall } from './domain/wall';
 import { CreateWallDto } from './dto/create-wall.dto';
@@ -13,6 +13,7 @@ import { WallGeometryService } from './services/wall-geometry.service';
 export class WallsService {
   constructor(
     private readonly wallRepository: WallRepository,
+    @Inject(forwardRef(() => FarmsService))
     private readonly farmsService: FarmsService,
     private readonly wallGeometryService: WallGeometryService,
   ) {}

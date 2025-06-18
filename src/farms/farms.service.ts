@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException, Inject, forwardRef } from '@nestjs/common';
 import { IPaginationOptions } from '../utils/types/pagination-options';
 import { Farm } from './domain/farm';
 import { CreateFarmDto } from './dto/create-farm.dto';
@@ -10,6 +10,7 @@ import { FarmHarvestService } from './services/farm-harvest.service';
 import { FarmLevelService } from './services/farm-level.service';
 import { UsersService } from '../users/users.service';
 import { Wall } from '../walls/domain/wall';
+import { WallRepository } from '../walls/infrastructure/persistence/wall.repository';
 
 @Injectable()
 export class FarmsService {
@@ -18,6 +19,8 @@ export class FarmsService {
     private readonly farmHarvestService: FarmHarvestService,
     private readonly farmLevelService: FarmLevelService,
     private readonly usersService: UsersService,
+    @Inject(forwardRef(() => WallRepository))
+    private readonly wallRepository: WallRepository,
   ) {}
 
   async create(createFarmDto: CreateFarmDto, owner: User): Promise<Farm> {
@@ -138,7 +141,24 @@ export class FarmsService {
       throw new BadRequestException('You can only delete your own farms');
     }
 
+    console.log(`🗑️ [FARM DELETE] Deleting farm ${farm.name} (${id})`);
+
+    // First, find and delete all walls connected to this farm
+    console.log(`🗑️ [FARM DELETE] Finding walls connected to farm ${id}`);
+    const connectedWalls = await this.wallRepository.findByFarm(id);
+    console.log(`🗑️ [FARM DELETE] Found ${connectedWalls.length} walls connected to farm ${farm.name}`);
+
+    // Delete all connected walls
+    for (const wall of connectedWalls) {
+      console.log(`🗑️ [FARM DELETE] Deleting wall ${wall.id} (${wall.fromFarm.name} ↔ ${wall.toFarm.name})`);
+      await this.wallRepository.remove(wall.id);
+    }
+
+    // Then delete the farm
+    console.log(`🗑️ [FARM DELETE] Deleting farm ${farm.name}`);
     await this.farmRepository.remove(id);
+    
+    console.log(`✅ [FARM DELETE] Successfully deleted farm ${farm.name} and ${connectedWalls.length} connected walls`);
   }
 
   async harvest(id: string, currentUser: User, userLocation: { latitude: number; longitude: number }): Promise<{

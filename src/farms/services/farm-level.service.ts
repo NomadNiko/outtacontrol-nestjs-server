@@ -15,9 +15,12 @@ export class FarmLevelService {
     console.log(`🏘️ [LEVEL] Calculating level for farm: ${farm.name} (${farm.id})`);
     
     // Get all walls connected to this farm
-    const connectedWalls = allWalls.filter(wall => 
-      String(wall.fromFarm.id) === String(farm.id) || String(wall.toFarm.id) === String(farm.id)
-    );
+    const connectedWalls = allWalls.filter(wall => {
+      if (!wall.fromFarm || !wall.toFarm || !wall.fromFarm.id || !wall.toFarm.id) {
+        return false;
+      }
+      return String(wall.fromFarm.id) === String(farm.id) || String(wall.toFarm.id) === String(farm.id);
+    });
 
     console.log(`🏘️ [LEVEL] Found ${connectedWalls.length} connected walls for farm ${farm.name}`);
     
@@ -59,9 +62,12 @@ export class FarmLevelService {
     const visited = new Set<string>();
 
     // For each wall connected to our target farm, try to find loops
-    const connectedWalls = allWalls.filter(wall => 
-      String(wall.fromFarm.id) === String(targetFarm.id) || String(wall.toFarm.id) === String(targetFarm.id)
-    );
+    const connectedWalls = allWalls.filter(wall => {
+      if (!wall.fromFarm || !wall.toFarm || !wall.fromFarm.id || !wall.toFarm.id) {
+        return false;
+      }
+      return String(wall.fromFarm.id) === String(targetFarm.id) || String(wall.toFarm.id) === String(targetFarm.id);
+    });
 
     console.log(`🔍 [VILLAGE] Found ${connectedWalls.length} connected walls for ${targetFarm.name}`);
 
@@ -113,19 +119,34 @@ export class FarmLevelService {
     }
 
     // Check if we can get back to target farm directly
-    const directConnection = allWalls.find(wall => 
-      (String(wall.fromFarm.id) === String(currentFarm.id) && String(wall.toFarm.id) === String(targetFarm.id)) ||
-      (String(wall.toFarm.id) === String(currentFarm.id) && String(wall.fromFarm.id) === String(targetFarm.id))
-    );
+    const directConnection = allWalls.find(wall => {
+      if (!wall.fromFarm || !wall.toFarm || !wall.fromFarm.id || !wall.toFarm.id) {
+        return false;
+      }
+      return (String(wall.fromFarm.id) === String(currentFarm.id) && String(wall.toFarm.id) === String(targetFarm.id)) ||
+             (String(wall.toFarm.id) === String(currentFarm.id) && String(wall.fromFarm.id) === String(targetFarm.id));
+    });
 
     if (directConnection) {
       const completePath = [...currentPath, currentFarm];
       console.log(`🎯 [PATH] Found direct connection! Complete path: ${completePath.map(f => f.name).join(' -> ')}`);
-      return completePath;
+      
+      // Only return the path if it forms a loop of at least 3 farms
+      if (completePath.length >= 3) {
+        console.log(`✅ [PATH] Valid loop found with ${completePath.length} farms`);
+        return completePath;
+      } else {
+        console.log(`❌ [PATH] Loop too small (${completePath.length} farms), need at least 3`);
+        return null;
+      }
     }
 
     // Try to continue the path through other farms
     const connectedWalls = allWalls.filter(wall => {
+      if (!wall.fromFarm || !wall.toFarm || !wall.fromFarm.id || !wall.toFarm.id) {
+        return false;
+      }
+      
       const isConnectedToCurrentFarm = String(wall.fromFarm.id) === String(currentFarm.id) || String(wall.toFarm.id) === String(currentFarm.id);
       if (!isConnectedToCurrentFarm) return false;
 

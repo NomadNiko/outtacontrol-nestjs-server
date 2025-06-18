@@ -8,6 +8,13 @@ export class WallMapper {
     const domainEntity = new Wall();
     domainEntity.id = raw._id.toString();
     
+    // Ensure required farm references are populated
+    if (!raw.fromFarm || !raw.toFarm) {
+      console.warn(`Wall ${raw._id} is missing required farm references. fromFarm: ${!!raw.fromFarm}, toFarm: ${!!raw.toFarm}`);
+      // For now, create partial domain entity but log the warning
+      // In production, you might want to throw an error or return null
+    }
+    
     if (raw.fromFarm) {
       domainEntity.fromFarm = FarmMapper.toDomain(raw.fromFarm as any);
     }

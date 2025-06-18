@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { WallsService } from './walls.service';
 import { WallsController } from './walls.controller';
@@ -13,7 +13,7 @@ import { FarmsModule } from '../farms/farms.module';
     MongooseModule.forFeature([
       { name: WallSchemaClass.name, schema: WallSchema },
     ]),
-    FarmsModule, // Import FarmsModule to access FarmsService
+    forwardRef(() => FarmsModule), // Import FarmsModule to access FarmsService
   ],
   controllers: [WallsController],
   providers: [
