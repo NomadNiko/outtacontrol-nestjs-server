@@ -61,43 +61,103 @@ export class FarmLevelService {
     const villages: Farm[][] = [];
     const visited = new Set<string>();
 
-    // For each wall connected to our target farm, try to find loops
-    const connectedWalls = allWalls.filter(wall => {
+    // Build adjacency graph
+    const graph = new Map<string, Farm[]>();
+    for (const wall of allWalls) {
       if (!wall.fromFarm || !wall.toFarm || !wall.fromFarm.id || !wall.toFarm.id) {
-        return false;
+        continue;
       }
-      return String(wall.fromFarm.id) === String(targetFarm.id) || String(wall.toFarm.id) === String(targetFarm.id);
-    });
-
-    console.log(`🔍 [VILLAGE] Found ${connectedWalls.length} connected walls for ${targetFarm.name}`);
-
-    for (const startWall of connectedWalls) {
-      const otherFarm = String(startWall.fromFarm.id) === String(targetFarm.id) 
-        ? startWall.toFarm 
-        : startWall.fromFarm;
-
-      console.log(`🔍 [VILLAGE] Trying path from ${targetFarm.name} -> ${otherFarm.name} -> back to ${targetFarm.name}`);
-
-      // Try to find a path back to our target farm
-      const path = this.findPathBackToFarm(otherFarm, targetFarm, allWalls, [targetFarm]);
       
-      if (path && path.length >= 3) { // Minimum village size is 3 farms
-        const villageKey = this.getVillageKey(path);
-        console.log(`✅ [VILLAGE] Found valid path: ${path.map(f => f.name).join(' -> ')}`);
-        if (!visited.has(villageKey)) {
-          villages.push([...path]);
-          visited.add(villageKey);
-          console.log(`✅ [VILLAGE] Added new village with ${path.length} farms`);
+      const fromId = String(wall.fromFarm.id);
+      const toId = String(wall.toFarm.id);
+      
+      if (!graph.has(fromId)) graph.set(fromId, []);
+      if (!graph.has(toId)) graph.set(toId, []);
+      
+      graph.get(fromId)!.push(wall.toFarm);
+      graph.get(toId)!.push(wall.fromFarm);
+    }
+
+    const targetId = String(targetFarm.id);
+    const neighbors = graph.get(targetId) || [];
+    
+    console.log(`🔍 [VILLAGE] Found ${neighbors.length} direct neighbors for ${targetFarm.name}: ${neighbors.map(f => f.name).join(', ')}`);
+
+    // For each neighbor, try to find cycles back to target farm
+    for (const neighbor of neighbors) {
+      console.log(`🔍 [VILLAGE] Exploring path starting from ${targetFarm.name} -> ${neighbor.name}`);
+      const cycles = this.findCyclesFromNode(targetFarm, neighbor, graph, [targetFarm]);
+      
+      for (const cycle of cycles) {
+        if (cycle.length >= 3) {
+          const villageKey = this.getVillageKey(cycle);
+          console.log(`✅ [VILLAGE] Found valid cycle: ${cycle.map(f => f.name).join(' -> ')}`);
+          if (!visited.has(villageKey)) {
+            villages.push([...cycle]);
+            visited.add(villageKey);
+            console.log(`✅ [VILLAGE] Added new village with ${cycle.length} farms`);
+          } else {
+            console.log(`⚠️ [VILLAGE] Village already found (duplicate)`);
+          }
         } else {
-          console.log(`⚠️ [VILLAGE] Village already found (duplicate)`);
+          console.log(`❌ [VILLAGE] Cycle too small (${cycle.length} farms)`);
         }
-      } else {
-        console.log(`❌ [VILLAGE] No valid path found from ${otherFarm.name} back to ${targetFarm.name}`);
       }
     }
 
     console.log(`🔍 [VILLAGE] Total villages found for ${targetFarm.name}: ${villages.length}`);
     return villages;
+  }
+
+  /**
+   * Find all cycles starting from a target farm through a neighbor
+   */
+  private findCyclesFromNode(
+    targetFarm: Farm,
+    currentFarm: Farm,
+    graph: Map<string, Farm[]>,
+    currentPath: Farm[]
+  ): Farm[][] {
+    const cycles: Farm[][] = [];
+    
+    // Prevent infinite loops
+    if (currentPath.length > 6) {
+      return cycles;
+    }
+
+    const currentId = String(currentFarm.id);
+    const targetId = String(targetFarm.id);
+    const neighbors = graph.get(currentId) || [];
+
+    console.log(`🚶 [CYCLE] At ${currentFarm.name}, path: ${currentPath.map(f => f.name).join(' -> ')}, neighbors: ${neighbors.map(f => f.name).join(', ')}`);
+
+    for (const neighbor of neighbors) {
+      const neighborId = String(neighbor.id);
+      
+      // If we found the target farm, we have a cycle
+      if (neighborId === targetId && currentPath.length >= 2) {
+        const cycle = [...currentPath, currentFarm];
+        console.log(`🎯 [CYCLE] Found cycle: ${cycle.map(f => f.name).join(' -> ')} -> ${targetFarm.name}`);
+        cycles.push(cycle);
+        continue;
+      }
+
+      // If we've already visited this farm, skip it
+      if (currentPath.some(farm => String(farm.id) === neighborId)) {
+        continue;
+      }
+
+      // Continue exploring
+      const subCycles = this.findCyclesFromNode(
+        targetFarm,
+        neighbor,
+        graph,
+        [...currentPath, currentFarm]
+      );
+      cycles.push(...subCycles);
+    }
+
+    return cycles;
   }
 
   /**
