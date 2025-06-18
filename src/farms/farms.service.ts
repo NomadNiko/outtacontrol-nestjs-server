@@ -7,13 +7,16 @@ import { GeoFilterFarmDto, SortFarmDto } from './dto/query-farm.dto';
 import { FarmRepository } from './infrastructure/persistence/farm.repository';
 import { User } from '../users/domain/user';
 import { FarmHarvestService } from './services/farm-harvest.service';
+import { FarmLevelService } from './services/farm-level.service';
 import { UsersService } from '../users/users.service';
+import { Wall } from '../walls/domain/wall';
 
 @Injectable()
 export class FarmsService {
   constructor(
     private readonly farmRepository: FarmRepository,
     private readonly farmHarvestService: FarmHarvestService,
+    private readonly farmLevelService: FarmLevelService,
     private readonly usersService: UsersService,
   ) {}
 
@@ -138,7 +141,7 @@ export class FarmsService {
     await this.farmRepository.remove(id);
   }
 
-  async harvest(id: string, currentUser: User): Promise<{
+  async harvest(id: string, currentUser: User, userLocation: { latitude: number; longitude: number }): Promise<{
     farm: Farm;
     harvest: {
       silverEarned: number;
@@ -174,6 +177,20 @@ export class FarmsService {
     // Check if user owns the farm
     if (farm.owner.id !== currentUser.id) {
       throw new BadRequestException('You can only harvest your own farms');
+    }
+
+    // Check if user is within 40 meters of the farm
+    const distance = this.calculateDistance(
+      userLocation.latitude,
+      userLocation.longitude,
+      farm.location.coordinates[1], // latitude
+      farm.location.coordinates[0], // longitude
+    );
+
+    if (distance > 40) {
+      throw new BadRequestException(
+        `You must be within 40 meters of the farm to harvest. You are ${distance.toFixed(1)} meters away.`
+      );
     }
 
     // Check if farm is active
@@ -284,5 +301,73 @@ export class FarmsService {
       hasNearbyFarms: nearbyFarms.length > 0,
       nearbyFarms,
     };
+  }
+
+  /**
+   * Recalculate farm levels after walls are added or removed
+   */
+  async recalculateFarmLevelsAfterWallChange(
+    affectedFarmIds: string[],
+    allWalls: Wall[]
+  ): Promise<void> {
+    try {
+      // Get all farms that might be affected
+      const extendedAffectedIds = this.farmLevelService.getAffectedFarms(affectedFarmIds, allWalls);
+      
+      // Get all affected farms
+      const affectedFarms: Farm[] = [];
+      for (const farmId of extendedAffectedIds) {
+        try {
+          const farm = await this.findOne(farmId);
+          affectedFarms.push(farm);
+        } catch (error) {
+          console.error(`Error finding farm ${farmId}:`, error);
+          // Continue with other farms
+        }
+      }
+
+      // Calculate new levels
+      const newLevels = await this.farmLevelService.recalculateFarmLevels(
+        extendedAffectedIds,
+        affectedFarms,
+        allWalls
+      );
+
+      // Update farms with new levels
+      for (const [farmId, newLevel] of newLevels.entries()) {
+        const farm = affectedFarms.find(f => String(f.id) === String(farmId));
+        if (farm && farm.level !== newLevel) {
+          console.log(`Updating farm ${farm.name} from level ${farm.level} to level ${newLevel}`);
+          await this.farmRepository.update(farmId, { level: newLevel });
+        }
+      }
+    } catch (error) {
+      console.error('Error recalculating farm levels:', error);
+      // Don't throw error to prevent breaking the wall operation
+    }
+  }
+
+  /**
+   * Calculate distance between two GPS coordinates using Haversine formula
+   * @returns Distance in meters
+   */
+  private calculateDistance(
+    lat1: number,
+    lon1: number,
+    lat2: number,
+    lon2: number,
+  ): number {
+    const R = 6371e3; // Earth's radius in meters
+    const φ1 = (lat1 * Math.PI) / 180;
+    const φ2 = (lat2 * Math.PI) / 180;
+    const Δφ = ((lat2 - lat1) * Math.PI) / 180;
+    const Δλ = ((lon2 - lon1) * Math.PI) / 180;
+
+    const a =
+      Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+      Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+    return R * c;
   }
 }

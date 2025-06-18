@@ -24,7 +24,7 @@ export class WallsService {
       upgraded: boolean;
     };
   }> {
-    const { fromFarmId, toFarmId } = createWallDto;
+    const { fromFarmId, toFarmId, userLocation } = createWallDto;
 
     // Validate that the farms are different
     if (fromFarmId === toFarmId) {
@@ -37,6 +37,27 @@ export class WallsService {
 
     if (fromFarm.owner.id !== owner.id || toFarm.owner.id !== owner.id) {
       throw new BadRequestException('You can only create walls between your own farms');
+    }
+
+    // Check if user is within 40 meters of either farm
+    const distanceToFromFarm = this.calculateDistance(
+      userLocation.latitude,
+      userLocation.longitude,
+      fromFarm.location.coordinates[1], // latitude
+      fromFarm.location.coordinates[0], // longitude
+    );
+
+    const distanceToToFarm = this.calculateDistance(
+      userLocation.latitude,
+      userLocation.longitude,
+      toFarm.location.coordinates[1], // latitude
+      toFarm.location.coordinates[0], // longitude
+    );
+
+    if (distanceToFromFarm > 40 && distanceToToFarm > 40) {
+      throw new BadRequestException(
+        `You must be within 40 meters of one of the farms to create a wall. You are ${distanceToFromFarm.toFixed(1)}m from ${fromFarm.name} and ${distanceToToFarm.toFixed(1)}m from ${toFarm.name}.`
+      );
     }
 
     // Check if wall already exists between these farms
@@ -104,15 +125,20 @@ export class WallsService {
 
     const createdWall = await this.wallRepository.create(wall);
 
-    // If a loop was formed, upgrade the farms
-    if (loopResult) {
-      try {
-        await this.upgradeFarmsInLoop(loopResult.farms);
+    // Recalculate farm levels after wall creation
+    try {
+      const allWallsAfterCreation = await this.wallRepository.getAllWalls();
+      await this.farmsService.recalculateFarmLevelsAfterWallChange(
+        [String(fromFarmId), String(toFarmId)],
+        allWallsAfterCreation
+      );
+      
+      if (loopResult) {
         loopResult.upgraded = true;
-      } catch (error) {
-        console.error('Error upgrading farms in loop:', error);
-        // Don't fail the wall creation if upgrade fails
       }
+    } catch (error) {
+      console.error('Error recalculating farm levels after wall creation:', error);
+      // Don't fail the wall creation if level calculation fails
     }
 
     return {
@@ -174,25 +200,46 @@ export class WallsService {
       throw new BadRequestException('You can only delete your own walls');
     }
 
+    // Store affected farm IDs before deletion
+    const affectedFarmIds = [String(wall.fromFarm.id), String(wall.toFarm.id)];
+
     await this.wallRepository.remove(id);
 
-    // TODO: Implement logic to downgrade farms if removing this wall breaks a loop
-    // This is complex and should be implemented in a future iteration
+    // Recalculate farm levels after wall removal
+    try {
+      const allWallsAfterRemoval = await this.wallRepository.getAllWalls();
+      await this.farmsService.recalculateFarmLevelsAfterWallChange(
+        affectedFarmIds,
+        allWallsAfterRemoval
+      );
+    } catch (error) {
+      console.error('Error recalculating farm levels after wall removal:', error);
+      // Don't fail the wall deletion if level calculation fails
+    }
   }
 
-  private async upgradeFarmsInLoop(farmIds: string[]): Promise<void> {
-    // Upgrade all farms in the loop to level 2
-    for (const farmId of farmIds) {
-      try {
-        const farm = await this.farmsService.findOne(farmId);
-        if (farm.level === 1) {
-          // Update farm to level 2
-          await this.farmsService.update(farmId, { level: 2 }, farm.owner);
-        }
-      } catch (error) {
-        console.error(`Error upgrading farm ${farmId}:`, error);
-        // Continue with other farms even if one fails
-      }
-    }
+
+  /**
+   * Calculate distance between two GPS coordinates using Haversine formula
+   * @returns Distance in meters
+   */
+  private calculateDistance(
+    lat1: number,
+    lon1: number,
+    lat2: number,
+    lon2: number,
+  ): number {
+    const R = 6371e3; // Earth's radius in meters
+    const φ1 = (lat1 * Math.PI) / 180;
+    const φ2 = (lat2 * Math.PI) / 180;
+    const Δφ = ((lat2 - lat1) * Math.PI) / 180;
+    const Δλ = ((lon2 - lon1) * Math.PI) / 180;
+
+    const a =
+      Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+      Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+    return R * c;
   }
 }

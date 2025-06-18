@@ -26,6 +26,7 @@ import { CreateFarmDto } from './dto/create-farm.dto';
 import { UpdateFarmDto } from './dto/update-farm.dto';
 import { QueryFarmDto } from './dto/query-farm.dto';
 import { FarmDto } from './dto/farm.dto';
+import { UserLocationDto } from './dto/user-location.dto';
 import { infinityPagination } from '../utils/infinity-pagination';
 import { InfinityPaginationResponseDto } from '../utils/dto/infinity-pagination-response.dto';
 
@@ -222,8 +223,12 @@ export class FarmsController {
   @SerializeOptions({
     groups: ['admin'],
   })
-  async harvest(@Param('id') id: string, @Request() request) {
-    return this.farmsService.harvest(id, request.user);
+  async harvest(
+    @Param('id') id: string, 
+    @Body() userLocation: UserLocationDto,
+    @Request() request
+  ) {
+    return this.farmsService.harvest(id, request.user, userLocation);
   }
 
   @ApiOperation({ summary: 'Delete a farm' })

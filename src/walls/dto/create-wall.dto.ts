@@ -1,5 +1,28 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsString } from 'class-validator';
+import { IsNotEmpty, IsString, IsNumber, Min, Max, ValidateNested } from 'class-validator';
+import { Type } from 'class-transformer';
+
+export class UserLocationDto {
+  @ApiProperty({ 
+    example: 37.7749,
+    description: 'User current latitude',
+  })
+  @IsNotEmpty()
+  @IsNumber()
+  @Min(-90)
+  @Max(90)
+  latitude: number;
+
+  @ApiProperty({ 
+    example: -122.4194,
+    description: 'User current longitude',
+  })
+  @IsNotEmpty()
+  @IsNumber()
+  @Min(-180)
+  @Max(180)
+  longitude: number;
+}
 
 export class CreateWallDto {
   @ApiProperty({
@@ -19,4 +42,12 @@ export class CreateWallDto {
   @IsNotEmpty()
   @IsString()
   toFarmId: string;
+
+  @ApiProperty({
+    type: UserLocationDto,
+    description: 'User current location for distance validation',
+  })
+  @ValidateNested()
+  @Type(() => UserLocationDto)
+  userLocation: UserLocationDto;
 }
