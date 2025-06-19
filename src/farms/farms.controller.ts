@@ -203,10 +203,10 @@ export class FarmsController {
     return this.farmsService.update(id, updateFarmDto, request.user);
   }
 
-  @ApiOperation({ summary: 'Harvest a farm' })
+  @ApiOperation({ summary: 'Harvest a farm or steal from another user\'s farm' })
   @ApiResponse({
     status: HttpStatus.OK,
-    description: 'Farm has been successfully harvested.',
+    description: 'Farm has been successfully harvested. Returns full harvest for owned farms, 25% harvest for other users\' farms.',
   })
   @ApiResponse({
     status: HttpStatus.NOT_FOUND,
@@ -214,7 +214,7 @@ export class FarmsController {
   })
   @ApiResponse({
     status: HttpStatus.BAD_REQUEST,
-    description: 'You can only harvest your own farms or farm has no harvestable currency.',
+    description: 'Farm has no harvestable currency, is inactive, or has no health.',
   })
   @ApiBearerAuth()
   @UseGuards(AuthGuard('jwt'))

@@ -194,10 +194,16 @@ export class FarmsService {
 
     const farm = await this.findOne(id);
     
-    // Check if user owns the farm
-    if (farm.owner.id !== currentUser.id) {
-      throw new BadRequestException('You can only harvest your own farms');
-    }
+    // Determine if this is the owner or someone stealing
+    const isOwner = farm.owner.id === currentUser.id;
+    const isSteal = !isOwner;
+    
+    console.log('🔍 [HARVEST] Ownership check:', {
+      farmOwnerId: farm.owner.id,
+      currentUserId: currentUser.id,
+      isOwner,
+      isSteal,
+    });
 
     // Check if user is within 40 meters of the farm
     const distance = this.calculateDistance(
@@ -225,31 +231,45 @@ export class FarmsService {
 
     // Calculate harvest
     console.log('🧮 [HARVEST] Calculating harvest...');
-    const harvestResult = this.farmHarvestService.calculateHarvest(farm);
-    console.log('💰 [HARVEST] Harvest calculation result:', harvestResult);
+    const baseHarvestResult = this.farmHarvestService.calculateHarvest(farm);
+    console.log('💰 [HARVEST] Base harvest calculation result:', baseHarvestResult);
+    
+    // Apply steal rate if not the owner (25% rounded down)
+    let finalHarvestResult = baseHarvestResult;
+    if (isSteal) {
+      const stealRate = 0.25; // 25%
+      finalHarvestResult = {
+        ...baseHarvestResult,
+        silverEarned: Math.floor(baseHarvestResult.silverEarned * stealRate),
+        goldEarned: Math.floor(baseHarvestResult.goldEarned * stealRate),
+        platinumEarned: Math.floor(baseHarvestResult.platinumEarned * stealRate),
+      };
+      console.log('🏴‍☠️ [HARVEST] Applied 25% steal rate:', finalHarvestResult);
+    }
     
     // Check if there's anything to harvest
-    if (harvestResult.silverEarned === 0 && harvestResult.goldEarned === 0 && harvestResult.platinumEarned === 0) {
-      throw new BadRequestException('No currency available to harvest yet');
+    if (finalHarvestResult.silverEarned === 0 && finalHarvestResult.goldEarned === 0 && finalHarvestResult.platinumEarned === 0) {
+      const action = isSteal ? 'steal from this farm' : 'harvest from this farm';
+      throw new BadRequestException(`No currency available to ${action} yet`);
     }
 
     // Update farm's last harvest time
     console.log('🚜 [HARVEST] Updating farm lastHarvestAt...');
-    farm.lastHarvestAt = harvestResult.lastHarvestAt;
+    farm.lastHarvestAt = baseHarvestResult.lastHarvestAt;
     const updatedFarm = await this.farmRepository.update(id, {
       lastHarvestAt: farm.lastHarvestAt,
     });
     console.log('✅ [HARVEST] Farm updated successfully');
 
     // Calculate new currency values using fresh user data
-    const newPlatinum = (freshUser.platinum || 0) + harvestResult.platinumEarned;
-    const newGold = (freshUser.gold || 0) + harvestResult.goldEarned;
-    const newSilver = (freshUser.silver || 0) + harvestResult.silverEarned;
+    const newPlatinum = (freshUser.platinum || 0) + finalHarvestResult.platinumEarned;
+    const newGold = (freshUser.gold || 0) + finalHarvestResult.goldEarned;
+    const newSilver = (freshUser.silver || 0) + finalHarvestResult.silverEarned;
 
     console.log('💸 [HARVEST] Updating user currency:');
-    console.log('  - Current platinum:', freshUser.platinum || 0, '+ earned:', harvestResult.platinumEarned, '= new:', newPlatinum);
-    console.log('  - Current gold:', freshUser.gold || 0, '+ earned:', harvestResult.goldEarned, '= new:', newGold);
-    console.log('  - Current silver:', freshUser.silver || 0, '+ earned:', harvestResult.silverEarned, '= new:', newSilver);
+    console.log('  - Current platinum:', freshUser.platinum || 0, '+ earned:', finalHarvestResult.platinumEarned, '= new:', newPlatinum);
+    console.log('  - Current gold:', freshUser.gold || 0, '+ earned:', finalHarvestResult.goldEarned, '= new:', newGold);
+    console.log('  - Current silver:', freshUser.silver || 0, '+ earned:', finalHarvestResult.silverEarned, '= new:', newSilver);
 
     // Update user's currency
     const updatedUser = await this.usersService.update(freshUser.id, {
@@ -272,16 +292,17 @@ export class FarmsService {
     const response = {
       farm: updatedFarm!,
       harvest: {
-        silverEarned: harvestResult.silverEarned,
-        goldEarned: harvestResult.goldEarned,
-        platinumEarned: harvestResult.platinumEarned,
-        totalMinutes: harvestResult.totalMinutes,
+        silverEarned: finalHarvestResult.silverEarned,
+        goldEarned: finalHarvestResult.goldEarned,
+        platinumEarned: finalHarvestResult.platinumEarned,
+        totalMinutes: finalHarvestResult.totalMinutes,
       },
       userCurrency: {
         platinum: updatedUser?.platinum || newPlatinum,
         gold: updatedUser?.gold || newGold,
         silver: updatedUser?.silver || newSilver,
       },
+      isSteal, // Add flag to indicate if this was a steal
     };
 
     console.log('📦 [HARVEST] Final response:', response);
