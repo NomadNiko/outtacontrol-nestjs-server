@@ -8,6 +8,7 @@ import { WallRepository } from './infrastructure/persistence/wall.repository';
 import { FarmsService } from '../farms/farms.service';
 import { User } from '../users/domain/user';
 import { WallGeometryService } from './services/wall-geometry.service';
+import { WallHealthService, HealResult } from './services/wall-health.service';
 
 @Injectable()
 export class WallsService {
@@ -16,6 +17,7 @@ export class WallsService {
     @Inject(forwardRef(() => FarmsService))
     private readonly farmsService: FarmsService,
     private readonly wallGeometryService: WallGeometryService,
+    private readonly wallHealthService: WallHealthService,
   ) {}
 
   async create(createWallDto: CreateWallDto, owner: User): Promise<{
@@ -123,6 +125,8 @@ export class WallsService {
     wall.owner = owner;
     wall.distance = distance;
     wall.isActive = true;
+    wall.health = 100; // Start with full health
+    wall.level = 1; // All walls start at level 1
 
     const createdWall = await this.wallRepository.create(wall);
 
@@ -180,24 +184,30 @@ export class WallsService {
     return this.wallRepository.findByFarm(farmId);
   }
 
-  async update(id: string, updateWallDto: UpdateWallDto, currentUser: User): Promise<Wall> {
+  async update(id: string, updateWallDto: UpdateWallDto, currentUser?: User): Promise<Wall> {
     const wall = await this.findOne(id);
     
-    // Check if user owns the wall
-    if (wall.owner.id !== currentUser.id) {
+    // Check if user owns the wall (if currentUser is provided)
+    if (currentUser && wall.owner.id !== currentUser.id) {
       throw new BadRequestException('You can only update your own walls');
     }
 
-    // For now, walls are not updatable after creation due to complexity
-    // of re-validating geometry and loops
-    throw new BadRequestException('Walls cannot be updated after creation');
+    // Update the wall with provided data
+    Object.assign(wall, updateWallDto);
+    const updatedWall = await this.wallRepository.update(id, wall);
+    
+    if (!updatedWall) {
+      throw new NotFoundException('Failed to update wall');
+    }
+    
+    return updatedWall;
   }
 
-  async remove(id: string, currentUser: User): Promise<void> {
+  async remove(id: string, currentUser?: User): Promise<void> {
     const wall = await this.findOne(id);
     
-    // Check if user owns the wall
-    if (wall.owner.id !== currentUser.id) {
+    // Check if user owns the wall (if currentUser is provided)
+    if (currentUser && wall.owner.id !== currentUser.id) {
       throw new BadRequestException('You can only delete your own walls');
     }
 
@@ -242,5 +252,79 @@ export class WallsService {
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
     return R * c;
+  }
+
+  /**
+   * Heal a wall by 25% of its maximum health
+   * @param wallId The wall ID to heal
+   * @param currentUser The user attempting to heal
+   * @param userLocation The user's current location
+   * @returns HealResult with healing details
+   */
+  async healWall(
+    wallId: string,
+    currentUser: User,
+    userLocation: { latitude: number; longitude: number }
+  ): Promise<HealResult> {
+    const wall = await this.findOne(wallId);
+
+    // Check if user owns the wall
+    if (wall.owner.id !== currentUser.id) {
+      throw new BadRequestException('You can only heal your own walls');
+    }
+
+    // Check if user is within 40 meters of either connected farm
+    const distanceToFromFarm = this.calculateDistance(
+      userLocation.latitude,
+      userLocation.longitude,
+      wall.fromFarm.location.coordinates[1], // latitude
+      wall.fromFarm.location.coordinates[0], // longitude
+    );
+
+    const distanceToToFarm = this.calculateDistance(
+      userLocation.latitude,
+      userLocation.longitude,
+      wall.toFarm.location.coordinates[1], // latitude
+      wall.toFarm.location.coordinates[0], // longitude
+    );
+
+    if (distanceToFromFarm > 40 && distanceToToFarm > 40) {
+      throw new BadRequestException(
+        `You must be within 40 meters of one of the connected farms to heal this wall. ` +
+        `You are ${distanceToFromFarm.toFixed(1)}m from ${wall.fromFarm.name} and ` +
+        `${distanceToToFarm.toFixed(1)}m from ${wall.toFarm.name}.`
+      );
+    }
+
+    // Check if wall can be healed
+    if (!this.wallHealthService.canHeal(wall)) {
+      if (wall.health >= 100) {
+        throw new BadRequestException('Wall is already at full health');
+      }
+      
+      const minutesRemaining = this.wallHealthService.getTimeUntilNextHeal(wall);
+      throw new BadRequestException(
+        `You can heal this wall again in ${minutesRemaining} minute${minutesRemaining !== 1 ? 's' : ''}`
+      );
+    }
+
+    // Apply healing
+    const healResult = this.wallHealthService.healWall(wall);
+
+    // Update wall health and lastHealAt
+    await this.update(wallId, {
+      health: healResult.newHealth,
+      lastHealAt: new Date(),
+    });
+
+    return healResult;
+  }
+
+  /**
+   * Get all active walls (not deleted and health > 0)
+   * @returns Array of active walls
+   */
+  async findAllActive(): Promise<Wall[]> {
+    return this.wallRepository.findAllActive();
   }
 }

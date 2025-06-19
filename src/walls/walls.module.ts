@@ -6,6 +6,8 @@ import { WallSchemaClass, WallSchema } from './infrastructure/persistence/docume
 import { WallsDocumentRepository } from './infrastructure/persistence/document/repositories/wall.repository';
 import { WallRepository } from './infrastructure/persistence/wall.repository';
 import { WallGeometryService } from './services/wall-geometry.service';
+import { WallHealthService } from './services/wall-health.service';
+import { WallDamageSchedulerService } from './services/wall-damage-scheduler.service';
 import { FarmsModule } from '../farms/farms.module';
 
 @Module({
@@ -19,6 +21,8 @@ import { FarmsModule } from '../farms/farms.module';
   providers: [
     WallsService,
     WallGeometryService,
+    WallHealthService,
+    WallDamageSchedulerService,
     {
       provide: WallRepository,
       useClass: WallsDocumentRepository,

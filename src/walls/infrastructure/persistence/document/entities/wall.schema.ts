@@ -48,6 +48,35 @@ export class WallSchemaClass extends EntityDocumentHelper {
   isActive: boolean;
 
   @Prop({
+    type: Number,
+    default: 100,
+    min: 0,
+    max: 100,
+    required: true,
+  })
+  health: number;
+
+  @Prop({
+    type: Number,
+    default: 1,
+    min: 1,
+    required: true,
+  })
+  level: number;
+
+  @Prop({
+    type: Date,
+    default: null,
+  })
+  lastDamageAt?: Date;
+
+  @Prop({
+    type: Date,
+    default: null,
+  })
+  lastHealAt?: Date;
+
+  @Prop({
     type: Date,
     default: null,
   })

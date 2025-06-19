@@ -390,4 +390,23 @@ export class FarmsService {
 
     return R * c;
   }
+
+  /**
+   * Update farm level (for system use, bypasses ownership check)
+   * Used by wall damage scheduler when walls are destroyed
+   */
+  async updateFarmLevel(id: string, newLevel: number): Promise<Farm> {
+    const farm = await this.findOne(id);
+    
+    // Update the farm level
+    const updatedFarm = await this.farmRepository.update(id, {
+      level: newLevel,
+    });
+
+    if (!updatedFarm) {
+      throw new NotFoundException('Farm not found');
+    }
+
+    return updatedFarm;
+  }
 }

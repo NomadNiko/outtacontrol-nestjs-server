@@ -122,6 +122,17 @@ export class WallsDocumentRepository implements WallRepository {
     return wallObjects.map((wallObject) => WallMapper.toDomain(wallObject));
   }
 
+  async findAllActive(): Promise<Wall[]> {
+    const wallObjects = await this.wallsModel
+      .find({
+        isActive: true,
+        health: { $gt: 0 },
+        deletedAt: null,
+      })
+      .populate(['fromFarm', 'toFarm', 'owner']);
+    return wallObjects.map((wallObject) => WallMapper.toDomain(wallObject));
+  }
+
   async update(id: Wall['id'], payload: Partial<Wall>): Promise<Wall | null> {
     const clonedPayload = { ...payload };
     delete clonedPayload.id;

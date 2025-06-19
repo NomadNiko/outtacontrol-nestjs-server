@@ -28,6 +28,8 @@ export abstract class WallRepository {
 
   abstract getAllWalls(): Promise<Wall[]>;
 
+  abstract findAllActive(): Promise<Wall[]>;
+
   abstract update(id: Wall['id'], payload: Partial<Wall>): Promise<Wall | null>;
 
   abstract remove(id: Wall['id']): Promise<void>;

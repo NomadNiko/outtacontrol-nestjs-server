@@ -27,6 +27,7 @@ import { QueryWallDto } from './dto/query-wall.dto';
 import { WallDto } from './dto/wall.dto';
 import { infinityPagination } from '../utils/infinity-pagination';
 import { InfinityPaginationResponseDto } from '../utils/dto/infinity-pagination-response.dto';
+import { UserLocationDto } from '../farms/dto/user-location.dto';
 
 @ApiTags('Walls')
 @Controller({
@@ -187,5 +188,45 @@ export class WallsController {
   @HttpCode(HttpStatus.NO_CONTENT)
   async remove(@Param('id') id: string, @Request() request) {
     return this.wallsService.remove(id, request.user);
+  }
+
+  @ApiOperation({ summary: 'Heal a wall by 25% health' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Wall has been successfully healed.',
+    type: WallDto,
+  })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'Wall not found.',
+  })
+  @ApiResponse({
+    status: HttpStatus.BAD_REQUEST,
+    description: 'Cannot heal wall (cooldown, full health, or distance).',
+  })
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
+  @Post(':id/heal')
+  @HttpCode(HttpStatus.OK)
+  @SerializeOptions({
+    groups: ['admin'],
+  })
+  async healWall(
+    @Param('id') id: string,
+    @Body() userLocationDto: UserLocationDto,
+    @Request() request,
+  ) {
+    const healResult = await this.wallsService.healWall(
+      id,
+      request.user,
+      userLocationDto
+    );
+    
+    // Return the updated wall with heal result info
+    const wall = await this.wallsService.findOne(id);
+    return {
+      wall,
+      healResult,
+    };
   }
 }
