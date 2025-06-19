@@ -29,6 +29,10 @@ export class WallMapper {
     
     domainEntity.distance = raw.distance;
     domainEntity.isActive = raw.isActive;
+    domainEntity.health = raw.health;
+    domainEntity.level = raw.level;
+    domainEntity.lastDamageAt = raw.lastDamageAt;
+    domainEntity.lastHealAt = raw.lastHealAt;
     domainEntity.createdAt = raw.createdAt;
     domainEntity.updatedAt = raw.updatedAt;
     domainEntity.deletedAt = raw.deletedAt;
@@ -57,6 +61,10 @@ export class WallMapper {
     
     persistenceSchema.distance = domainEntity.distance;
     persistenceSchema.isActive = domainEntity.isActive;
+    persistenceSchema.health = domainEntity.health;
+    persistenceSchema.level = domainEntity.level;
+    persistenceSchema.lastDamageAt = domainEntity.lastDamageAt;
+    persistenceSchema.lastHealAt = domainEntity.lastHealAt;
     persistenceSchema.createdAt = domainEntity.createdAt;
     persistenceSchema.updatedAt = domainEntity.updatedAt;
     persistenceSchema.deletedAt = domainEntity.deletedAt;

@@ -42,6 +42,41 @@ export class WallDto {
   isActive: boolean;
 
   @ApiProperty({
+    type: Number,
+    example: 100,
+    description: 'Current health of the wall (0-100)',
+    default: 100,
+    minimum: 0,
+    maximum: 100,
+  })
+  health: number;
+
+  @ApiProperty({
+    type: Number,
+    example: 1,
+    description: 'Level of the wall',
+    default: 1,
+    minimum: 1,
+  })
+  level: number;
+
+  @ApiProperty({
+    type: Date,
+    example: '2024-01-01T12:00:00Z',
+    required: false,
+    description: 'Timestamp when the wall was last damaged',
+  })
+  lastDamageAt?: Date;
+
+  @ApiProperty({
+    type: Date,
+    example: '2024-01-01T12:00:00Z',
+    required: false,
+    description: 'Timestamp when the wall was last healed',
+  })
+  lastHealAt?: Date;
+
+  @ApiProperty({
     type: Date,
     example: '2024-01-01T12:00:00Z',
   })
