@@ -5,7 +5,7 @@ import { UserMapper } from '../../../../../users/infrastructure/persistence/docu
 export class FarmMapper {
   static toDomain(raw: FarmSchemaClass): Farm {
     const domainEntity = new Farm();
-    domainEntity.id = raw._id.toString();
+    domainEntity.id = raw._id?.toString() || '';
     domainEntity.name = raw.name;
     domainEntity.description = raw.description;
     domainEntity.location = raw.location;

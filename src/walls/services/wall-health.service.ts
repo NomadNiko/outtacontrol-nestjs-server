@@ -45,15 +45,10 @@ export class WallHealthService {
       levelLost: false,
     };
 
-    // Check if wall should be destroyed (level 1 wall at 0 health)
-    if (newHealth <= 0 && wall.level === 1) {
+    // Check if wall should be destroyed (any wall at 0 or negative health)
+    if (newHealth <= 0) {
       result.isDestroyed = true;
       this.logger.log(`Wall ${wall.id} destroyed due to health depletion`);
-    } else if (newHealth <= 0 && wall.level > 1) {
-      // Wall loses a level but survives with full health
-      result.levelLost = true;
-      result.newHealth = this.MAX_HEALTH;
-      this.logger.log(`Wall ${wall.id} lost a level, now level ${wall.level - 1}`);
     }
 
     return result;

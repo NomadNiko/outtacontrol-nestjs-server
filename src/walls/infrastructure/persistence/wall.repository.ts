@@ -33,4 +33,6 @@ export abstract class WallRepository {
   abstract update(id: Wall['id'], payload: Partial<Wall>): Promise<Wall | null>;
 
   abstract remove(id: Wall['id']): Promise<void>;
+
+  abstract updateHealthOnly(id: Wall['id'], health: number, lastDamageAt?: Date, level?: number): Promise<void>;
 }

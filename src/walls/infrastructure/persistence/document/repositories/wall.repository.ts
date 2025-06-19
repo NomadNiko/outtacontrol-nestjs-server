@@ -138,7 +138,11 @@ export class WallsDocumentRepository implements WallRepository {
     delete clonedPayload.id;
 
     const filter = { _id: id.toString() };
-    const wall = await this.wallsModel.findOne(filter);
+    
+    // First populate the wall to get the full data for mapping
+    const wall = await this.wallsModel
+      .findOne(filter)
+      .populate(['fromFarm', 'toFarm', 'owner']);
 
     if (!wall) {
       return null;
@@ -163,5 +167,25 @@ export class WallsDocumentRepository implements WallRepository {
     await this.wallsModel.deleteOne({
       _id: id.toString(),
     });
+  }
+
+  async updateHealthOnly(id: Wall['id'], health: number, lastDamageAt?: Date, level?: number): Promise<void> {
+    const updateData: any = {
+      health,
+      updatedAt: new Date(),
+    };
+
+    if (lastDamageAt) {
+      updateData.lastDamageAt = lastDamageAt;
+    }
+
+    if (level !== undefined) {
+      updateData.level = level;
+    }
+
+    await this.wallsModel.updateOne(
+      { _id: id.toString() },
+      { $set: updateData }
+    );
   }
 }

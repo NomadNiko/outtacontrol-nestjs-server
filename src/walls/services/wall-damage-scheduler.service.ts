@@ -17,12 +17,12 @@ export class WallDamageSchedulerService {
   ) {}
 
   /**
-   * Run damage calculation every hour on the hour
-   * Cron expression: 0 0 * * * * (at minute 0 of every hour)
+   * Run damage calculation every 5 minutes for testing
+   * Cron expression: "0 ASTERISK/5 * * * *" (every 5 minutes)
    */
-  @Cron('0 0 * * * *')
+  @Cron('0 */5 * * * *')
   async applyHourlyDamage() {
-    this.logger.log('🔨 Starting hourly wall damage calculation...');
+    this.logger.log('🔨 Starting 5-minute wall damage calculation...');
     
     try {
       // Get all active walls
@@ -37,7 +37,6 @@ export class WallDamageSchedulerService {
       
       let wallsDestroyed = 0;
       let wallsDamaged = 0;
-      let wallsLevelReduced = 0;
       const affectedFarmIds = new Set<string>();
 
       // Process each wall
@@ -49,19 +48,6 @@ export class WallDamageSchedulerService {
           if (damageResult.damage > 0) {
             wallsDamaged++;
             
-            // Update wall health and lastDamageAt
-            const updateData: any = {
-              health: damageResult.newHealth,
-              lastDamageAt: new Date(),
-            };
-
-            // Handle level reduction
-            if (damageResult.levelLost && wall.level > 1) {
-              updateData.level = wall.level - 1;
-              wallsLevelReduced++;
-              this.logger.log(`Wall ${wall.id} reduced to level ${updateData.level}`);
-            }
-
             // Handle wall destruction
             if (damageResult.isDestroyed) {
               wallsDestroyed++;
@@ -72,10 +58,14 @@ export class WallDamageSchedulerService {
               
               // Delete the wall through the service to ensure proper cleanup
               await this.wallsService.remove(wall.id);
-              this.logger.log(`Wall ${wall.id} destroyed due to health depletion`);
+              this.logger.log(`Wall ${wall.id} destroyed and removed due to health depletion`);
             } else {
-              // Update wall if not destroyed
-              await this.wallsService.update(wall.id, updateData);
+              // Update wall if not destroyed - use direct health update to avoid mapping issues
+              await this.wallsService.updateHealthOnly(
+                wall.id, 
+                damageResult.newHealth, 
+                new Date()
+              );
             }
           }
         } catch (error) {
@@ -122,11 +112,10 @@ export class WallDamageSchedulerService {
       }
 
       this.logger.log(
-        `✅ Hourly damage complete: ${wallsDamaged} walls damaged, ` +
-        `${wallsLevelReduced} walls lost levels, ${wallsDestroyed} walls destroyed`
+        `✅ 5-minute damage complete: ${wallsDamaged} walls damaged, ${wallsDestroyed} walls destroyed`
       );
     } catch (error) {
-      this.logger.error('Error in hourly wall damage calculation:', error);
+      this.logger.error('Error in 5-minute wall damage calculation:', error);
     }
   }
 

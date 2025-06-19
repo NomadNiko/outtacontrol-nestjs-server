@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException, NotFoundException, Inject, forwardRef } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException, Inject, forwardRef, Logger } from '@nestjs/common';
 import { IPaginationOptions } from '../utils/types/pagination-options';
 import { Wall } from './domain/wall';
 import { CreateWallDto } from './dto/create-wall.dto';
@@ -12,6 +12,8 @@ import { WallHealthService, HealResult } from './services/wall-health.service';
 
 @Injectable()
 export class WallsService {
+  private readonly logger = new Logger(WallsService.name);
+
   constructor(
     private readonly wallRepository: WallRepository,
     @Inject(forwardRef(() => FarmsService))
@@ -266,58 +268,97 @@ export class WallsService {
     currentUser: User,
     userLocation: { latitude: number; longitude: number }
   ): Promise<HealResult> {
-    const wall = await this.findOne(wallId);
+    try {
+      const wall = await this.findOne(wallId);
 
-    // Check if user owns the wall
-    if (wall.owner.id !== currentUser.id) {
-      throw new BadRequestException('You can only heal your own walls');
-    }
+      // Validate wall data
+      if (!wall) {
+        throw new BadRequestException('Wall not found');
+      }
 
-    // Check if user is within 40 meters of either connected farm
-    const distanceToFromFarm = this.calculateDistance(
-      userLocation.latitude,
-      userLocation.longitude,
-      wall.fromFarm.location.coordinates[1], // latitude
-      wall.fromFarm.location.coordinates[0], // longitude
-    );
+      if (!wall.owner || !wall.owner.id) {
+        throw new BadRequestException('Wall owner information is missing');
+      }
 
-    const distanceToToFarm = this.calculateDistance(
-      userLocation.latitude,
-      userLocation.longitude,
-      wall.toFarm.location.coordinates[1], // latitude
-      wall.toFarm.location.coordinates[0], // longitude
-    );
+      // Check if user owns the wall
+      if (wall.owner.id !== currentUser.id) {
+        throw new BadRequestException('You can only heal your own walls');
+      }
 
-    if (distanceToFromFarm > 40 && distanceToToFarm > 40) {
-      throw new BadRequestException(
-        `You must be within 40 meters of one of the connected farms to heal this wall. ` +
-        `You are ${distanceToFromFarm.toFixed(1)}m from ${wall.fromFarm.name} and ` +
-        `${distanceToToFarm.toFixed(1)}m from ${wall.toFarm.name}.`
+      // Validate farm data
+      if (!wall.fromFarm || !wall.fromFarm.location || !wall.fromFarm.location.coordinates) {
+        throw new BadRequestException('From farm location data is missing');
+      }
+
+      if (!wall.toFarm || !wall.toFarm.location || !wall.toFarm.location.coordinates) {
+        throw new BadRequestException('To farm location data is missing');
+      }
+
+      // Validate coordinate arrays
+      if (!Array.isArray(wall.fromFarm.location.coordinates) || wall.fromFarm.location.coordinates.length < 2) {
+        throw new BadRequestException('From farm coordinates are invalid');
+      }
+
+      if (!Array.isArray(wall.toFarm.location.coordinates) || wall.toFarm.location.coordinates.length < 2) {
+        throw new BadRequestException('To farm coordinates are invalid');
+      }
+
+      // Check if user is within 40 meters of either connected farm
+      const distanceToFromFarm = this.calculateDistance(
+        userLocation.latitude,
+        userLocation.longitude,
+        wall.fromFarm.location.coordinates[1], // latitude
+        wall.fromFarm.location.coordinates[0], // longitude
       );
-    }
 
-    // Check if wall can be healed
-    if (!this.wallHealthService.canHeal(wall)) {
-      if (wall.health >= 100) {
-        throw new BadRequestException('Wall is already at full health');
+      const distanceToToFarm = this.calculateDistance(
+        userLocation.latitude,
+        userLocation.longitude,
+        wall.toFarm.location.coordinates[1], // latitude
+        wall.toFarm.location.coordinates[0], // longitude
+      );
+
+      if (distanceToFromFarm > 40 && distanceToToFarm > 40) {
+        throw new BadRequestException(
+          `You must be within 40 meters of one of the connected farms to heal this wall. ` +
+          `You are ${distanceToFromFarm.toFixed(1)}m from ${wall.fromFarm.name} and ` +
+          `${distanceToToFarm.toFixed(1)}m from ${wall.toFarm.name}.`
+        );
+      }
+
+      // Check if wall can be healed
+      if (!this.wallHealthService.canHeal(wall)) {
+        if (wall.health >= 100) {
+          throw new BadRequestException('Wall is already at full health');
+        }
+        
+        const minutesRemaining = this.wallHealthService.getTimeUntilNextHeal(wall);
+        throw new BadRequestException(
+          `You can heal this wall again in ${minutesRemaining} minute${minutesRemaining !== 1 ? 's' : ''}`
+        );
+      }
+
+      // Apply healing
+      const healResult = this.wallHealthService.healWall(wall);
+
+      // Update wall health and lastHealAt
+      await this.update(wallId, {
+        health: healResult.newHealth,
+        lastHealAt: new Date(),
+      });
+
+      return healResult;
+    } catch (error) {
+      this.logger.error(`Error healing wall ${wallId}:`, error);
+      
+      // If it's already a BadRequestException, re-throw it
+      if (error instanceof BadRequestException) {
+        throw error;
       }
       
-      const minutesRemaining = this.wallHealthService.getTimeUntilNextHeal(wall);
-      throw new BadRequestException(
-        `You can heal this wall again in ${minutesRemaining} minute${minutesRemaining !== 1 ? 's' : ''}`
-      );
+      // For any other error, throw a generic internal server error
+      throw new BadRequestException('Failed to heal wall. Please try again.');
     }
-
-    // Apply healing
-    const healResult = this.wallHealthService.healWall(wall);
-
-    // Update wall health and lastHealAt
-    await this.update(wallId, {
-      health: healResult.newHealth,
-      lastHealAt: new Date(),
-    });
-
-    return healResult;
   }
 
   /**
@@ -326,5 +367,13 @@ export class WallsService {
    */
   async findAllActive(): Promise<Wall[]> {
     return this.wallRepository.findAllActive();
+  }
+
+  /**
+   * Update only health-related fields without full domain mapping
+   * Used by scheduler to avoid mapping issues with unpopulated references
+   */
+  async updateHealthOnly(id: string, health: number, lastDamageAt?: Date, level?: number): Promise<void> {
+    return this.wallRepository.updateHealthOnly(id, health, lastDamageAt, level);
   }
 }
