@@ -15,6 +15,7 @@ import { User } from '../users/domain/user';
 import { FarmHarvestService } from './services/farm-harvest.service';
 import { FarmLevelService } from './services/farm-level.service';
 import { UsersService } from '../users/users.service';
+import { UserXpService } from '../users/services/user-xp.service';
 import { Wall } from '../walls/domain/wall';
 import { WallRepository } from '../walls/infrastructure/persistence/wall.repository';
 import { PurchasesService } from '../purchases/purchases.service';
@@ -30,6 +31,7 @@ export class FarmsService {
     private readonly farmHarvestService: FarmHarvestService,
     private readonly farmLevelService: FarmLevelService,
     private readonly usersService: UsersService,
+    private readonly userXpService: UserXpService,
     @Inject(forwardRef(() => WallRepository))
     private readonly wallRepository: WallRepository,
     @Inject(forwardRef(() => PurchasesService))
@@ -44,6 +46,12 @@ export class FarmsService {
     purchaseResult: {
       cost: any;
       updatedUser: User;
+    };
+    xpReward?: {
+      xpAdded: number;
+      leveledUp: boolean;
+      newLevel: number;
+      xpStats: any;
     };
   }> {
     // Check for farms within 10 meters
@@ -97,11 +105,27 @@ export class FarmsService {
       `🚜 [FARM CREATE] Farm "${farm.name}" created successfully at level ${farmLevel}`,
     );
 
+    // Add XP for creating a farm
+    console.log(`🎯 [FARM CREATE] Adding 100 XP to user for creating farm`);
+    const xpResult = await this.userXpService.addXp(owner.id, 100);
+    
+    if (xpResult.leveledUp) {
+      console.log(
+        `🎉 [FARM CREATE] User leveled up! From level ${xpResult.previousLevel} to ${xpResult.newLevel}`,
+      );
+    }
+
     return {
       farm: createdFarm,
       purchaseResult: {
         cost: purchaseResult.cost,
         updatedUser: purchaseResult.updatedUser,
+      },
+      xpReward: {
+        xpAdded: xpResult.xpAdded,
+        leveledUp: xpResult.leveledUp,
+        newLevel: xpResult.newLevel,
+        xpStats: xpResult.xpStats,
       },
     };
   }

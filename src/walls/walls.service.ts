@@ -14,6 +14,7 @@ import { FilterWallDto, SortWallDto } from './dto/query-wall.dto';
 import { WallRepository } from './infrastructure/persistence/wall.repository';
 import { FarmsService } from '../farms/farms.service';
 import { User } from '../users/domain/user';
+import { UserXpService } from '../users/services/user-xp.service';
 import { WallGeometryService } from './services/wall-geometry.service';
 import { WallHealthService, HealResult } from './services/wall-health.service';
 import { PurchasesService } from '../purchases/purchases.service';
@@ -33,6 +34,7 @@ export class WallsService {
     private readonly farmsService: FarmsService,
     private readonly wallGeometryService: WallGeometryService,
     private readonly wallHealthService: WallHealthService,
+    private readonly userXpService: UserXpService,
     @Inject(forwardRef(() => PurchasesService))
     private readonly purchasesService: PurchasesService,
   ) {}
@@ -49,6 +51,12 @@ export class WallsService {
     purchaseResult: {
       cost: any;
       updatedUser: User;
+    };
+    xpReward?: {
+      xpAdded: number;
+      leveledUp: boolean;
+      newLevel: number;
+      xpStats: any;
     };
   }> {
     const { fromFarmId, toFarmId, userLocation } = createWallDto;
@@ -197,6 +205,16 @@ export class WallsService {
 
     const createdWall = await this.wallRepository.create(wall);
 
+    // Add XP for creating a wall
+    console.log(`🎯 [WALL CREATE] Adding 100 XP to user for creating wall`);
+    const xpResult = await this.userXpService.addXp(owner.id, 100);
+    
+    if (xpResult.leveledUp) {
+      console.log(
+        `🎉 [WALL CREATE] User leveled up! From level ${xpResult.previousLevel} to ${xpResult.newLevel}`,
+      );
+    }
+
     // Recalculate farm levels after wall creation
     try {
       const allWallsAfterCreation = await this.wallRepository.getAllWalls();
@@ -222,6 +240,12 @@ export class WallsService {
       purchaseResult: {
         cost: purchaseResult.cost,
         updatedUser: purchaseResult.updatedUser,
+      },
+      xpReward: {
+        xpAdded: xpResult.xpAdded,
+        leveledUp: xpResult.leveledUp,
+        newLevel: xpResult.newLevel,
+        xpStats: xpResult.xpStats,
       },
     };
   }
@@ -392,7 +416,7 @@ export class WallsService {
     wallId: string,
     currentUser: User,
     userLocation: { latitude: number; longitude: number },
-  ): Promise<HealResult> {
+  ): Promise<HealResult & { xpReward?: any }> {
     try {
       const wall = await this.findOne(wallId);
 
@@ -503,7 +527,26 @@ export class WallsService {
         lastHealAt: new Date(),
       });
 
-      return healResult;
+      // Add XP for healing a wall
+      console.log(`🎯 [WALL HEAL] Adding 50 XP to user for healing wall`);
+      const xpResult = await this.userXpService.addXp(currentUser.id, 50);
+      
+      if (xpResult.leveledUp) {
+        console.log(
+          `🎉 [WALL HEAL] User leveled up! From level ${xpResult.previousLevel} to ${xpResult.newLevel}`,
+        );
+      }
+
+      // Add XP information to heal result
+      return {
+        ...healResult,
+        xpReward: {
+          xpAdded: xpResult.xpAdded,
+          leveledUp: xpResult.leveledUp,
+          newLevel: xpResult.newLevel,
+          xpStats: xpResult.xpStats,
+        },
+      };
     } catch (error) {
       this.logger.error(`Error healing wall ${wallId}:`, error);
 

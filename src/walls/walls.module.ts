@@ -13,6 +13,7 @@ import { WallHealthService } from './services/wall-health.service';
 import { WallDamageSchedulerService } from './services/wall-damage-scheduler.service';
 import { FarmsModule } from '../farms/farms.module';
 import { PurchasesModule } from '../purchases/purchases.module';
+import { UsersModule } from '../users/users.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { PurchasesModule } from '../purchases/purchases.module';
     ]),
     forwardRef(() => FarmsModule), // Import FarmsModule to access FarmsService
     forwardRef(() => PurchasesModule),
+    UsersModule, // Import UsersModule to access UserXpService
   ],
   controllers: [WallsController],
   providers: [
