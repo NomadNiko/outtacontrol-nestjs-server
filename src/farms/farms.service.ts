@@ -11,6 +11,8 @@ import { FarmLevelService } from './services/farm-level.service';
 import { UsersService } from '../users/users.service';
 import { Wall } from '../walls/domain/wall';
 import { WallRepository } from '../walls/infrastructure/persistence/wall.repository';
+import { PurchasesService } from '../purchases/purchases.service';
+import { FARM_CREATION_COST, FARM_DELETION_REWARD } from '../purchases/config/purchase-costs.config';
 
 @Injectable()
 export class FarmsService {
@@ -21,9 +23,17 @@ export class FarmsService {
     private readonly usersService: UsersService,
     @Inject(forwardRef(() => WallRepository))
     private readonly wallRepository: WallRepository,
+    @Inject(forwardRef(() => PurchasesService))
+    private readonly purchasesService: PurchasesService,
   ) {}
 
-  async create(createFarmDto: CreateFarmDto, owner: User): Promise<Farm> {
+  async create(createFarmDto: CreateFarmDto, owner: User): Promise<{
+    farm: Farm;
+    purchaseResult: {
+      cost: any;
+      updatedUser: User;
+    };
+  }> {
     // Check for farms within 10 meters
     const nearbyFarms = await this.farmRepository.findNearby({
       longitude: createFarmDto.location.coordinates[0],
@@ -37,6 +47,22 @@ export class FarmsService {
       );
     }
 
+    // Calculate and process purchase cost
+    const farmLevel = 1; // All new farms start at level 1
+    const farmCost = FARM_CREATION_COST;
+    
+    console.log(`💰 [FARM CREATE] Processing purchase for farm creation - Cost: ${farmCost.silver} silver, ${farmCost.gold} gold, ${farmCost.platinum} platinum`);
+    
+    // Make the purchase (this will validate funds and deduct currency)
+    const purchaseResult = await this.purchasesService.makePurchase(
+      owner.id,
+      farmCost,
+      'farm creation'
+    );
+
+    console.log(`✅ [FARM CREATE] Purchase successful, creating farm...`);
+
+    // Create the farm after successful purchase
     const farm = new Farm();
     farm.name = createFarmDto.name;
     farm.description = createFarmDto.description;
@@ -44,14 +70,24 @@ export class FarmsService {
       type: 'Point',
       coordinates: createFarmDto.location.coordinates,
     };
-    farm.owner = owner;
-    farm.level = 1;
+    farm.owner = purchaseResult.updatedUser; // Use the updated user with new currency
+    farm.level = farmLevel;
     farm.experience = 0;
     farm.isActive = true;
     farm.health = 100; // Start with full health
     farm.lastHarvestAt = new Date(); // Set initial harvest time to now
 
-    return this.farmRepository.create(farm);
+    const createdFarm = await this.farmRepository.create(farm);
+
+    console.log(`🚜 [FARM CREATE] Farm "${farm.name}" created successfully at level ${farmLevel}`);
+
+    return {
+      farm: createdFarm,
+      purchaseResult: {
+        cost: purchaseResult.cost,
+        updatedUser: purchaseResult.updatedUser,
+      },
+    };
   }
 
   async findManyWithPagination({
@@ -133,7 +169,13 @@ export class FarmsService {
     return updatedFarm;
   }
 
-  async remove(id: string, currentUser: User): Promise<void> {
+  async remove(id: string, currentUser: User): Promise<{
+    success: boolean;
+    rewardResult?: {
+      reward: any;
+      updatedUser: User;
+    };
+  }> {
     const farm = await this.findOne(id);
     
     // Check if user owns the farm
@@ -143,12 +185,17 @@ export class FarmsService {
 
     console.log(`🗑️ [FARM DELETE] Deleting farm ${farm.name} (${id})`);
 
+    // Calculate deletion reward before deleting
+    const deletionReward = FARM_DELETION_REWARD;
+    
+    console.log(`💰 [FARM DELETE] Calculated deletion reward: ${deletionReward.silver} silver, ${deletionReward.gold} gold, ${deletionReward.platinum} platinum`);
+
     // First, find and delete all walls connected to this farm
     console.log(`🗑️ [FARM DELETE] Finding walls connected to farm ${id}`);
     const connectedWalls = await this.wallRepository.findByFarm(id);
     console.log(`🗑️ [FARM DELETE] Found ${connectedWalls.length} walls connected to farm ${farm.name}`);
 
-    // Delete all connected walls
+    // Delete all connected walls (Note: Wall deletion rewards are handled separately in walls service)
     for (const wall of connectedWalls) {
       console.log(`🗑️ [FARM DELETE] Deleting wall ${wall.id} (${wall.fromFarm.name} ↔ ${wall.toFarm.name})`);
       await this.wallRepository.remove(wall.id);
@@ -158,7 +205,25 @@ export class FarmsService {
     console.log(`🗑️ [FARM DELETE] Deleting farm ${farm.name}`);
     await this.farmRepository.remove(id);
     
-    console.log(`✅ [FARM DELETE] Successfully deleted farm ${farm.name} and ${connectedWalls.length} connected walls`);
+    // Give deletion reward to the user
+    let rewardResult;
+    if (deletionReward.silver > 0 || deletionReward.gold > 0 || deletionReward.platinum > 0) {
+      rewardResult = await this.purchasesService.giveReward(
+        currentUser.id,
+        deletionReward,
+        `farm deletion (${farm.name})`
+      );
+    }
+    
+    console.log(`✅ [FARM DELETE] Successfully deleted farm ${farm.name} and ${connectedWalls.length} connected walls with reward`);
+    
+    return {
+      success: true,
+      rewardResult: rewardResult ? {
+        reward: rewardResult.reward,
+        updatedUser: rewardResult.updatedUser,
+      } : undefined,
+    };
   }
 
   async harvest(id: string, currentUser: User, userLocation: { latitude: number; longitude: number }): Promise<{

@@ -56,7 +56,16 @@ export class FarmsController {
     groups: ['admin'],
   })
   async create(@Request() request, @Body() createFarmDto: CreateFarmDto) {
-    return this.farmsService.create(createFarmDto, request.user);
+    const result = await this.farmsService.create(createFarmDto, request.user);
+    return {
+      farm: result.farm,
+      cost: result.purchaseResult.cost,
+      userCurrency: {
+        platinum: result.purchaseResult.updatedUser.platinum,
+        gold: result.purchaseResult.updatedUser.gold,
+        silver: result.purchaseResult.updatedUser.silver,
+      },
+    };
   }
 
   @ApiOperation({ summary: 'Get farms with pagination and filtering' })
@@ -247,8 +256,17 @@ export class FarmsController {
   @ApiBearerAuth()
   @UseGuards(AuthGuard('jwt'))
   @Delete(':id')
-  @HttpCode(HttpStatus.NO_CONTENT)
+  @HttpCode(HttpStatus.OK)
   async remove(@Param('id') id: string, @Request() request) {
-    return this.farmsService.remove(id, request.user);
+    const result = await this.farmsService.remove(id, request.user);
+    return {
+      success: result.success,
+      reward: result.rewardResult?.reward,
+      userCurrency: result.rewardResult?.updatedUser ? {
+        platinum: result.rewardResult.updatedUser.platinum,
+        gold: result.rewardResult.updatedUser.gold,
+        silver: result.rewardResult.updatedUser.silver,
+      } : undefined,
+    };
   }
 }

@@ -9,6 +9,7 @@ import { WallGeometryService } from './services/wall-geometry.service';
 import { WallHealthService } from './services/wall-health.service';
 import { WallDamageSchedulerService } from './services/wall-damage-scheduler.service';
 import { FarmsModule } from '../farms/farms.module';
+import { PurchasesModule } from '../purchases/purchases.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { FarmsModule } from '../farms/farms.module';
       { name: WallSchemaClass.name, schema: WallSchema },
     ]),
     forwardRef(() => FarmsModule), // Import FarmsModule to access FarmsService
+    forwardRef(() => PurchasesModule),
   ],
   controllers: [WallsController],
   providers: [

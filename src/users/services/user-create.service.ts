@@ -140,8 +140,8 @@ export class UserCreateService {
       provider: createUserDto.provider ?? AuthProvidersEnum.email,
       socialId: createUserDto.socialId,
       platinum: 0,
-      gold: 0,
-      silver: 0,
+      gold: 10,
+      silver: 200,
     });
   }
 }

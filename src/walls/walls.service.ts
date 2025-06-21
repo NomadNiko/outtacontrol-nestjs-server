@@ -9,6 +9,8 @@ import { FarmsService } from '../farms/farms.service';
 import { User } from '../users/domain/user';
 import { WallGeometryService } from './services/wall-geometry.service';
 import { WallHealthService, HealResult } from './services/wall-health.service';
+import { PurchasesService } from '../purchases/purchases.service';
+import { WALL_CREATION_COST, WALL_DELETION_REWARD, WALL_HEAL_COST } from '../purchases/config/purchase-costs.config';
 
 @Injectable()
 export class WallsService {
@@ -20,6 +22,8 @@ export class WallsService {
     private readonly farmsService: FarmsService,
     private readonly wallGeometryService: WallGeometryService,
     private readonly wallHealthService: WallHealthService,
+    @Inject(forwardRef(() => PurchasesService))
+    private readonly purchasesService: PurchasesService,
   ) {}
 
   async create(createWallDto: CreateWallDto, owner: User): Promise<{
@@ -27,6 +31,10 @@ export class WallsService {
     loopFormed?: {
       farms: string[];
       upgraded: boolean;
+    };
+    purchaseResult: {
+      cost: any;
+      updatedUser: User;
     };
   }> {
     const { fromFarmId, toFarmId, userLocation } = createWallDto;
@@ -120,6 +128,20 @@ export class WallsService {
       };
     }
 
+    // Calculate and process purchase cost
+    const wallCost = WALL_CREATION_COST;
+    
+    console.log(`💰 [WALL CREATE] Processing purchase for wall creation - Distance: ${distance.toFixed(1)}m, Cost: ${wallCost.silver} silver, ${wallCost.gold} gold, ${wallCost.platinum} platinum`);
+    
+    // Make the purchase (this will validate funds and deduct currency)
+    const purchaseResult = await this.purchasesService.makePurchase(
+      owner.id,
+      wallCost,
+      'wall creation'
+    );
+
+    console.log(`✅ [WALL CREATE] Purchase successful, creating wall...`);
+
     // Create the wall
     const wall = new Wall();
     wall.fromFarm = fromFarm;
@@ -151,6 +173,10 @@ export class WallsService {
     return {
       wall: createdWall,
       loopFormed: loopResult,
+      purchaseResult: {
+        cost: purchaseResult.cost,
+        updatedUser: purchaseResult.updatedUser,
+      },
     };
   }
 
@@ -205,7 +231,13 @@ export class WallsService {
     return updatedWall;
   }
 
-  async remove(id: string, currentUser?: User): Promise<void> {
+  async remove(id: string, currentUser?: User): Promise<{
+    success: boolean;
+    rewardResult?: {
+      reward: any;
+      updatedUser: User;
+    };
+  }> {
     const wall = await this.findOne(id);
     
     // Check if user owns the wall (if currentUser is provided)
@@ -213,10 +245,27 @@ export class WallsService {
       throw new BadRequestException('You can only delete your own walls');
     }
 
+    console.log(`🗑️ [WALL DELETE] Deleting wall ${id} between ${wall.fromFarm.name} and ${wall.toFarm.name}`);
+
+    // Calculate deletion reward before deleting
+    const deletionReward = WALL_DELETION_REWARD;
+    
+    console.log(`💰 [WALL DELETE] Calculated deletion reward: ${deletionReward.silver} silver, ${deletionReward.gold} gold, ${deletionReward.platinum} platinum`);
+
     // Store affected farm IDs before deletion
     const affectedFarmIds = [String(wall.fromFarm.id), String(wall.toFarm.id)];
 
     await this.wallRepository.remove(id);
+
+    // Give deletion reward to the user
+    let rewardResult;
+    if (currentUser && (deletionReward.silver > 0 || deletionReward.gold > 0 || deletionReward.platinum > 0)) {
+      rewardResult = await this.purchasesService.giveReward(
+        currentUser.id,
+        deletionReward,
+        `wall deletion (${wall.fromFarm.name} ↔ ${wall.toFarm.name})`
+      );
+    }
 
     // Recalculate farm levels after wall removal
     try {
@@ -229,6 +278,16 @@ export class WallsService {
       console.error('Error recalculating farm levels after wall removal:', error);
       // Don't fail the wall deletion if level calculation fails
     }
+
+    console.log(`✅ [WALL DELETE] Successfully deleted wall with reward`);
+    
+    return {
+      success: true,
+      rewardResult: rewardResult ? {
+        reward: rewardResult.reward,
+        updatedUser: rewardResult.updatedUser,
+      } : undefined,
+    };
   }
 
 
@@ -337,6 +396,20 @@ export class WallsService {
           `You can heal this wall again in ${minutesRemaining} minute${minutesRemaining !== 1 ? 's' : ''}`
         );
       }
+
+      // Process payment for healing before applying the heal
+      const healCost = WALL_HEAL_COST;
+      
+      console.log(`💰 [WALL HEAL] Processing payment for wall healing - Cost: ${healCost.silver} silver, ${healCost.gold} gold, ${healCost.platinum} platinum`);
+      
+      // Make the purchase (this will validate funds and deduct currency)
+      const purchaseResult = await this.purchasesService.makePurchase(
+        currentUser.id,
+        healCost,
+        `wall healing (${wall.fromFarm.name} ↔ ${wall.toFarm.name})`
+      );
+
+      console.log(`✅ [WALL HEAL] Payment successful, applying healing...`);
 
       // Apply healing
       const healResult = this.wallHealthService.healWall(wall);

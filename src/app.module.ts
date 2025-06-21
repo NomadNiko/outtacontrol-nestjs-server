@@ -45,11 +45,13 @@ const infrastructureDatabaseModule = (databaseConfig() as DatabaseConfig)
 
 import { FarmsModule } from './farms/farms.module';
 import { WallsModule } from './walls/walls.module';
+import { PurchasesModule } from './purchases/purchases.module';
 
 @Module({
   imports: [
     FarmsModule,
     WallsModule,
+    PurchasesModule,
     ScheduleModule.forRoot(),
     ConfigModule.forRoot({
       isGlobal: true,

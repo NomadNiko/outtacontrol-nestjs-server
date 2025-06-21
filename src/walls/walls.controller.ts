@@ -55,7 +55,17 @@ export class WallsController {
     groups: ['admin'],
   })
   async create(@Request() request, @Body() createWallDto: CreateWallDto) {
-    return this.wallsService.create(createWallDto, request.user);
+    const result = await this.wallsService.create(createWallDto, request.user);
+    return {
+      wall: result.wall,
+      loopFormed: result.loopFormed,
+      cost: result.purchaseResult.cost,
+      userCurrency: {
+        platinum: result.purchaseResult.updatedUser.platinum,
+        gold: result.purchaseResult.updatedUser.gold,
+        silver: result.purchaseResult.updatedUser.silver,
+      },
+    };
   }
 
   @ApiOperation({ summary: 'Get walls with pagination and filtering' })
@@ -185,9 +195,18 @@ export class WallsController {
   @ApiBearerAuth()
   @UseGuards(AuthGuard('jwt'))
   @Delete(':id')
-  @HttpCode(HttpStatus.NO_CONTENT)
+  @HttpCode(HttpStatus.OK)
   async remove(@Param('id') id: string, @Request() request) {
-    return this.wallsService.remove(id, request.user);
+    const result = await this.wallsService.remove(id, request.user);
+    return {
+      success: result.success,
+      reward: result.rewardResult?.reward,
+      userCurrency: result.rewardResult?.updatedUser ? {
+        platinum: result.rewardResult.updatedUser.platinum,
+        gold: result.rewardResult.updatedUser.gold,
+        silver: result.rewardResult.updatedUser.silver,
+      } : undefined,
+    };
   }
 
   @ApiOperation({ summary: 'Heal a wall by 25% health' })
