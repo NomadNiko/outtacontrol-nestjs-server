@@ -26,9 +26,9 @@ export class UserSchemaClass extends EntityDocumentHelper {
   @Prop({
     type: String,
     unique: true,
-    sparse: true,
+    required: true,
   })
-  username?: string | null;
+  username: string;
 
   @Prop()
   password?: string;

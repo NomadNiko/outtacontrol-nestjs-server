@@ -154,10 +154,18 @@ export class LoginService {
         id: StatusEnum.active,
       };
 
+      // Generate a unique username for social login users
+      const baseUsername = socialData.firstName 
+        ? socialData.firstName.toLowerCase().replace(/[^a-z0-9]/g, '')
+        : 'user';
+      const randomSuffix = Math.random().toString(36).substring(2, 8);
+      const generatedUsername = `${baseUsername}${randomSuffix}`;
+
       user = await this.usersService.create({
         email: socialEmail ?? null,
         firstName: socialData.firstName ?? null,
         lastName: socialData.lastName ?? null,
+        username: generatedUsername,
         socialId: socialData.id,
         provider: authProvider,
         role,

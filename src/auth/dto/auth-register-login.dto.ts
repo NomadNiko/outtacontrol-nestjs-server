@@ -9,10 +9,10 @@ export class AuthRegisterLoginDto {
   @IsEmail()
   email: string;
 
-  @ApiPropertyOptional({ example: 'johndoe', type: String })
-  @IsOptional()
+  @ApiProperty({ example: 'johndoe', type: String })
+  @IsNotEmpty()
   @Transform(lowerCaseTransformer)
-  username?: string;
+  username: string;
 
   @ApiProperty()
   @MinLength(6)

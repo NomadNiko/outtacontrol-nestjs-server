@@ -29,7 +29,7 @@ export class User {
     type: String,
     example: 'johndoe',
   })
-  username?: string | null;
+  username: string;
 
   @Exclude({ toPlainOnly: true })
   password?: string;

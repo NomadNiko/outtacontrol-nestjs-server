@@ -50,21 +50,17 @@ export class UserCreateService {
       email = createUserDto.email;
     }
 
-    let username: string | null = null;
-
-    if (createUserDto.username) {
-      const userObject = await this.usersRepository.findByUsername(
-        createUserDto.username,
-      );
-      if (userObject) {
-        throw new UnprocessableEntityException({
-          status: HttpStatus.UNPROCESSABLE_ENTITY,
-          errors: {
-            username: 'usernameAlreadyExists',
-          },
-        });
-      }
-      username = createUserDto.username;
+    // Check if username already exists
+    const existingUser = await this.usersRepository.findByUsername(
+      createUserDto.username,
+    );
+    if (existingUser) {
+      throw new UnprocessableEntityException({
+        status: HttpStatus.UNPROCESSABLE_ENTITY,
+        errors: {
+          username: 'usernameAlreadyExists',
+        },
+      });
     }
 
     let photo: FileType | null | undefined = undefined;
@@ -132,7 +128,7 @@ export class UserCreateService {
       firstName: createUserDto.firstName,
       lastName: createUserDto.lastName,
       email: email,
-      username: username,
+      username: createUserDto.username,
       password: password,
       photo: photo,
       role: role,

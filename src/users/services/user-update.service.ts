@@ -64,7 +64,7 @@ export class UserUpdateService {
       email = null;
     }
 
-    let username: string | null | undefined = undefined;
+    let username: string | undefined = undefined;
 
     if (updateUserDto.username) {
       const userObject = await this.usersRepository.findByUsername(
@@ -81,8 +81,6 @@ export class UserUpdateService {
       }
 
       username = updateUserDto.username;
-    } else if (updateUserDto.username === null) {
-      username = null;
     }
 
     let photo: FileType | null | undefined = undefined;

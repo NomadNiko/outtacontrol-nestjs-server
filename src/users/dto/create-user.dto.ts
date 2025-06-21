@@ -23,10 +23,10 @@ export class CreateUserDto {
   @IsEmail()
   email: string | null;
 
-  @ApiPropertyOptional({ example: 'johndoe', type: String })
-  @IsOptional()
+  @ApiProperty({ example: 'johndoe', type: String })
+  @IsNotEmpty()
   @Transform(lowerCaseTransformer)
-  username?: string | null;
+  username: string;
 
   @ApiProperty()
   @MinLength(6)
