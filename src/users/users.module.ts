@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 
 import { UsersController } from './users.controller';
+import { XpController } from './xp.controller';
 
 import { UsersService } from './users.service';
 import { DocumentUserPersistenceModule } from './infrastructure/persistence/document/document-persistence.module';
@@ -12,6 +13,8 @@ import { UserCreateService } from './services/user-create.service';
 import { UserReadService } from './services/user-read.service';
 import { UserUpdateService } from './services/user-update.service';
 import { UserDeleteService } from './services/user-delete.service';
+import { XpLevelingService } from './services/xp-leveling.service';
+import { UserXpService } from './services/user-xp.service';
 
 // <database-block>
 const infrastructurePersistenceModule = (databaseConfig() as DatabaseConfig)
@@ -22,14 +25,21 @@ const infrastructurePersistenceModule = (databaseConfig() as DatabaseConfig)
 
 @Module({
   imports: [infrastructurePersistenceModule, FilesModule],
-  controllers: [UsersController],
+  controllers: [UsersController, XpController],
   providers: [
     UserCreateService,
     UserReadService,
     UserUpdateService,
     UserDeleteService,
+    XpLevelingService,
+    UserXpService,
     UsersService,
   ],
-  exports: [UsersService, infrastructurePersistenceModule],
+  exports: [
+    UsersService,
+    XpLevelingService,
+    UserXpService,
+    infrastructurePersistenceModule,
+  ],
 })
 export class UsersModule {}

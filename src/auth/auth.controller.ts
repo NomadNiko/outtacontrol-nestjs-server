@@ -25,6 +25,8 @@ import { LoginResponseDto } from './dto/login-response.dto';
 import { NullableType } from '../utils/types/nullable.type';
 import { User } from '../users/domain/user';
 import { RefreshResponseDto } from './dto/refresh-response.dto';
+import { UserWithXpStatsDto } from '../users/dto/user-with-xp-stats.dto';
+import { UserXpService } from '../users/services/user-xp.service';
 
 @ApiTags('Auth')
 @Controller({
@@ -32,7 +34,10 @@ import { RefreshResponseDto } from './dto/refresh-response.dto';
   version: '1',
 })
 export class AuthController {
-  constructor(private readonly service: AuthService) {}
+  constructor(
+    private readonly service: AuthService,
+    private readonly userXpService: UserXpService,
+  ) {}
 
   @SerializeOptions({
     groups: ['me'],
@@ -111,6 +116,24 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   public me(@Request() request): Promise<NullableType<User>> {
     return this.service.me(request.user);
+  }
+
+  @ApiBearerAuth()
+  @SerializeOptions({
+    groups: ['me'],
+  })
+  @Get('me/with-xp-stats')
+  @UseGuards(AuthGuard('jwt'))
+  @ApiOkResponse({
+    type: UserWithXpStatsDto,
+    description: 'Current user with detailed XP statistics',
+  })
+  @HttpCode(HttpStatus.OK)
+  public async meWithXpStats(@Request() request): Promise<UserWithXpStatsDto> {
+    const userWithXpStats = await this.userXpService.getUserWithXpStats(
+      request.user.id,
+    );
+    return userWithXpStats as UserWithXpStatsDto;
   }
 
   @ApiBearerAuth()

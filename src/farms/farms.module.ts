@@ -17,13 +17,18 @@ const infrastructurePersistenceModule = (databaseConfig() as DatabaseConfig)
 
 @Module({
   imports: [
-    infrastructurePersistenceModule, 
-    UsersModule, 
+    infrastructurePersistenceModule,
+    UsersModule,
     forwardRef(() => WallsModule),
     forwardRef(() => PurchasesModule),
   ],
   controllers: [FarmsController],
   providers: [FarmsService, FarmHarvestService, FarmLevelService],
-  exports: [FarmsService, FarmHarvestService, FarmLevelService, infrastructurePersistenceModule],
+  exports: [
+    FarmsService,
+    FarmHarvestService,
+    FarmLevelService,
+    infrastructurePersistenceModule,
+  ],
 })
 export class FarmsModule {}

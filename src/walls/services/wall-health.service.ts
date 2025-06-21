@@ -19,7 +19,7 @@ export interface HealResult {
 @Injectable()
 export class WallHealthService {
   private readonly logger = new Logger(WallHealthService.name);
-  
+
   // Constants
   private readonly DAMAGE_PER_HOUR = 5; // 5% health loss per hour
   private readonly HEAL_AMOUNT = 25; // 25% health restoration
@@ -33,10 +33,13 @@ export class WallHealthService {
    * @param damageAmount Amount of damage to apply (defaults to DAMAGE_PER_HOUR)
    * @returns DamageResult with damage details
    */
-  applyDamage(wall: Wall, damageAmount: number = this.DAMAGE_PER_HOUR): DamageResult {
+  applyDamage(
+    wall: Wall,
+    damageAmount: number = this.DAMAGE_PER_HOUR,
+  ): DamageResult {
     const previousHealth = wall.health;
     const newHealth = Math.max(this.MIN_HEALTH, wall.health - damageAmount);
-    
+
     const result: DamageResult = {
       previousHealth,
       newHealth,
@@ -63,10 +66,12 @@ export class WallHealthService {
   healWall(wall: Wall, healAmount: number = this.HEAL_AMOUNT): HealResult {
     const previousHealth = wall.health;
     const newHealth = Math.min(this.MAX_HEALTH, wall.health + healAmount);
-    
+
     // Calculate next heal time
     const canHealAgainAt = new Date();
-    canHealAgainAt.setMinutes(canHealAgainAt.getMinutes() + this.HEAL_COOLDOWN_MINUTES);
+    canHealAgainAt.setMinutes(
+      canHealAgainAt.getMinutes() + this.HEAL_COOLDOWN_MINUTES,
+    );
 
     return {
       previousHealth,
@@ -90,8 +95,10 @@ export class WallHealthService {
     // Check cooldown if lastHealAt exists
     if (wall.lastHealAt) {
       const cooldownEnd = new Date(wall.lastHealAt);
-      cooldownEnd.setMinutes(cooldownEnd.getMinutes() + this.HEAL_COOLDOWN_MINUTES);
-      
+      cooldownEnd.setMinutes(
+        cooldownEnd.getMinutes() + this.HEAL_COOLDOWN_MINUTES,
+      );
+
       if (new Date() < cooldownEnd) {
         return false;
       }
@@ -111,8 +118,10 @@ export class WallHealthService {
     }
 
     const cooldownEnd = new Date(wall.lastHealAt);
-    cooldownEnd.setMinutes(cooldownEnd.getMinutes() + this.HEAL_COOLDOWN_MINUTES);
-    
+    cooldownEnd.setMinutes(
+      cooldownEnd.getMinutes() + this.HEAL_COOLDOWN_MINUTES,
+    );
+
     const now = new Date();
     if (now >= cooldownEnd) {
       return 0;
@@ -133,8 +142,9 @@ export class WallHealthService {
     }
 
     const now = new Date();
-    const hoursSinceLastDamage = (now.getTime() - lastDamageAt.getTime()) / (1000 * 60 * 60);
-    
+    const hoursSinceLastDamage =
+      (now.getTime() - lastDamageAt.getTime()) / (1000 * 60 * 60);
+
     // Calculate damage for complete hours only
     const completeHours = Math.floor(hoursSinceLastDamage);
     return completeHours * this.DAMAGE_PER_HOUR;

@@ -1,6 +1,13 @@
 import { ApiPropertyOptional, PartialType } from '@nestjs/swagger';
 import { CreateFarmDto } from './create-farm.dto';
-import { IsOptional, IsNumber, Min, Max, IsBoolean, IsDate } from 'class-validator';
+import {
+  IsOptional,
+  IsNumber,
+  Min,
+  Max,
+  IsBoolean,
+  IsDate,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class UpdateFarmDto extends PartialType(CreateFarmDto) {

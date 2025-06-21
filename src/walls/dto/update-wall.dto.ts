@@ -1,5 +1,12 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsOptional, IsBoolean, IsNumber, Min, Max, IsDate } from 'class-validator';
+import {
+  IsOptional,
+  IsBoolean,
+  IsNumber,
+  Min,
+  Max,
+  IsDate,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class UpdateWallDto {

@@ -55,9 +55,7 @@ export class QueryWallDto {
     type: String,
   })
   @IsOptional()
-  @Transform(({ value }) =>
-    value ? JSON.parse(value) : undefined,
-  )
+  @Transform(({ value }) => (value ? JSON.parse(value) : undefined))
   filters?: FilterWallDto | null;
 
   @ApiProperty({

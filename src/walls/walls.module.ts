@@ -2,7 +2,10 @@ import { Module, forwardRef } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { WallsService } from './walls.service';
 import { WallsController } from './walls.controller';
-import { WallSchemaClass, WallSchema } from './infrastructure/persistence/document/entities/wall.schema';
+import {
+  WallSchemaClass,
+  WallSchema,
+} from './infrastructure/persistence/document/entities/wall.schema';
 import { WallsDocumentRepository } from './infrastructure/persistence/document/repositories/wall.repository';
 import { WallRepository } from './infrastructure/persistence/wall.repository';
 import { WallGeometryService } from './services/wall-geometry.service';

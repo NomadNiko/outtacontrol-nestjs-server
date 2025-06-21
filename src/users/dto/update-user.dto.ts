@@ -2,7 +2,14 @@ import { PartialType, ApiPropertyOptional } from '@nestjs/swagger';
 import { CreateUserDto } from './create-user.dto';
 
 import { Transform, Type } from 'class-transformer';
-import { IsEmail, IsOptional, MinLength, IsNumber, Min } from 'class-validator';
+import {
+  IsEmail,
+  IsOptional,
+  MinLength,
+  IsNumber,
+  Min,
+  Max,
+} from 'class-validator';
 import { FileDto } from '../../files/dto/file.dto';
 import { RoleDto } from '../../roles/dto/role.dto';
 import { StatusDto } from '../../statuses/dto/status.dto';
@@ -51,8 +58,8 @@ export class UpdateUserDto extends PartialType(CreateUserDto) {
   @Type(() => StatusDto)
   status?: StatusDto;
 
-  @ApiPropertyOptional({ 
-    example: 0, 
+  @ApiPropertyOptional({
+    example: 0,
     type: Number,
     description: 'Amount of platinum currency owned',
   })
@@ -61,8 +68,8 @@ export class UpdateUserDto extends PartialType(CreateUserDto) {
   @Min(0)
   platinum?: number;
 
-  @ApiPropertyOptional({ 
-    example: 0, 
+  @ApiPropertyOptional({
+    example: 0,
     type: Number,
     description: 'Amount of gold currency owned',
   })
@@ -71,8 +78,8 @@ export class UpdateUserDto extends PartialType(CreateUserDto) {
   @Min(0)
   gold?: number;
 
-  @ApiPropertyOptional({ 
-    example: 0, 
+  @ApiPropertyOptional({
+    example: 0,
     type: Number,
     description: 'Amount of silver currency owned',
   })
@@ -80,4 +87,27 @@ export class UpdateUserDto extends PartialType(CreateUserDto) {
   @IsNumber()
   @Min(0)
   silver?: number;
+
+  @ApiPropertyOptional({
+    example: 0,
+    type: Number,
+    description: 'Total experience points earned',
+  })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  xp?: number;
+
+  @ApiPropertyOptional({
+    example: 1,
+    type: Number,
+    description: 'Current user level',
+    minimum: 1,
+    maximum: 50,
+  })
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  @Max(50)
+  level?: number;
 }

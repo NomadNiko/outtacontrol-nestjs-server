@@ -21,14 +21,14 @@ export class WallsDocumentRepository implements WallRepository {
     const persistenceModel = WallMapper.toPersistence(data);
     const createdWall = new this.wallsModel(persistenceModel);
     const wallObject = await createdWall.save();
-    
+
     // Populate the farm and user references
     await wallObject.populate([
       { path: 'fromFarm' },
       { path: 'toFarm' },
       { path: 'owner' },
     ]);
-    
+
     return WallMapper.toDomain(wallObject);
   }
 
@@ -42,14 +42,14 @@ export class WallsDocumentRepository implements WallRepository {
     paginationOptions: IPaginationOptions;
   }): Promise<Wall[]> {
     const where: FilterQuery<WallSchemaClass> = {};
-    
+
     if (filterOptions?.farmId) {
       where.$or = [
         { fromFarm: filterOptions.farmId },
         { toFarm: filterOptions.farmId },
       ];
     }
-    
+
     if (filterOptions?.ownerId) {
       where.owner = filterOptions.ownerId;
     }
@@ -103,7 +103,10 @@ export class WallsDocumentRepository implements WallRepository {
     return wallObjects.map((wallObject) => WallMapper.toDomain(wallObject));
   }
 
-  async findBetweenFarms(fromFarmId: string, toFarmId: string): Promise<NullableType<Wall>> {
+  async findBetweenFarms(
+    fromFarmId: string,
+    toFarmId: string,
+  ): Promise<NullableType<Wall>> {
     const wallObject = await this.wallsModel
       .findOne({
         $or: [
@@ -138,7 +141,7 @@ export class WallsDocumentRepository implements WallRepository {
     delete clonedPayload.id;
 
     const filter = { _id: id.toString() };
-    
+
     // First populate the wall to get the full data for mapping
     const wall = await this.wallsModel
       .findOne(filter)
@@ -169,7 +172,12 @@ export class WallsDocumentRepository implements WallRepository {
     });
   }
 
-  async updateHealthOnly(id: Wall['id'], health: number, lastDamageAt?: Date, level?: number): Promise<void> {
+  async updateHealthOnly(
+    id: Wall['id'],
+    health: number,
+    lastDamageAt?: Date,
+    level?: number,
+  ): Promise<void> {
     const updateData: any = {
       health,
       updatedAt: new Date(),
@@ -185,7 +193,7 @@ export class WallsDocumentRepository implements WallRepository {
 
     await this.wallsModel.updateOne(
       { _id: id.toString() },
-      { $set: updateData }
+      { $set: updateData },
     );
   }
 }

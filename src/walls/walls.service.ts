@@ -1,4 +1,11 @@
-import { Injectable, BadRequestException, NotFoundException, Inject, forwardRef, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+  Inject,
+  forwardRef,
+  Logger,
+} from '@nestjs/common';
 import { IPaginationOptions } from '../utils/types/pagination-options';
 import { Wall } from './domain/wall';
 import { CreateWallDto } from './dto/create-wall.dto';
@@ -10,7 +17,11 @@ import { User } from '../users/domain/user';
 import { WallGeometryService } from './services/wall-geometry.service';
 import { WallHealthService, HealResult } from './services/wall-health.service';
 import { PurchasesService } from '../purchases/purchases.service';
-import { WALL_CREATION_COST, WALL_DELETION_REWARD, WALL_HEAL_COST } from '../purchases/config/purchase-costs.config';
+import {
+  WALL_CREATION_COST,
+  WALL_DELETION_REWARD,
+  WALL_HEAL_COST,
+} from '../purchases/config/purchase-costs.config';
 
 @Injectable()
 export class WallsService {
@@ -26,7 +37,10 @@ export class WallsService {
     private readonly purchasesService: PurchasesService,
   ) {}
 
-  async create(createWallDto: CreateWallDto, owner: User): Promise<{
+  async create(
+    createWallDto: CreateWallDto,
+    owner: User,
+  ): Promise<{
     wall: Wall;
     loopFormed?: {
       farms: string[];
@@ -41,7 +55,9 @@ export class WallsService {
 
     // Validate that the farms are different
     if (fromFarmId === toFarmId) {
-      throw new BadRequestException('Cannot create a wall connecting a farm to itself');
+      throw new BadRequestException(
+        'Cannot create a wall connecting a farm to itself',
+      );
     }
 
     // Get both farms and validate ownership
@@ -49,7 +65,9 @@ export class WallsService {
     const toFarm = await this.farmsService.findOne(toFarmId);
 
     if (fromFarm.owner.id !== owner.id || toFarm.owner.id !== owner.id) {
-      throw new BadRequestException('You can only create walls between your own farms');
+      throw new BadRequestException(
+        'You can only create walls between your own farms',
+      );
     }
 
     // Check if user is within 40 meters of either farm
@@ -69,21 +87,29 @@ export class WallsService {
 
     if (distanceToFromFarm > 40 && distanceToToFarm > 40) {
       throw new BadRequestException(
-        `You must be within 40 meters of one of the farms to create a wall. You are ${distanceToFromFarm.toFixed(1)}m from ${fromFarm.name} and ${distanceToToFarm.toFixed(1)}m from ${toFarm.name}.`
+        `You must be within 40 meters of one of the farms to create a wall. You are ${distanceToFromFarm.toFixed(1)}m from ${fromFarm.name} and ${distanceToToFarm.toFixed(1)}m from ${toFarm.name}.`,
       );
     }
 
     // Check if wall already exists between these farms
-    const existingWall = await this.wallRepository.findBetweenFarms(fromFarmId, toFarmId);
+    const existingWall = await this.wallRepository.findBetweenFarms(
+      fromFarmId,
+      toFarmId,
+    );
     if (existingWall) {
-      throw new BadRequestException('A wall already exists between these farms');
+      throw new BadRequestException(
+        'A wall already exists between these farms',
+      );
     }
 
     // Calculate distance and validate it's within 60 meters
-    const distance = this.wallGeometryService.calculateDistance(fromFarm, toFarm);
+    const distance = this.wallGeometryService.calculateDistance(
+      fromFarm,
+      toFarm,
+    );
     if (distance > 60) {
       throw new BadRequestException(
-        `Distance between farms is ${distance.toFixed(1)}m. Walls can only span up to 60 meters.`
+        `Distance between farms is ${distance.toFixed(1)}m. Walls can only span up to 60 meters.`,
       );
     }
 
@@ -93,32 +119,47 @@ export class WallsService {
     // Check for wall intersections
     const wouldIntersect = this.wallGeometryService.checkWallIntersection(
       { fromFarm, toFarm },
-      existingWalls
+      existingWalls,
     );
     if (wouldIntersect) {
-      throw new BadRequestException('This wall would intersect with an existing wall');
+      throw new BadRequestException(
+        'This wall would intersect with an existing wall',
+      );
     }
 
     // Check chain length before adding (prevent chains longer than 6 without closing)
-    const fromChainCheck = this.wallGeometryService.checkChainLength(fromFarmId, existingWalls);
-    const toChainCheck = this.wallGeometryService.checkChainLength(toFarmId, existingWalls);
-    
+    const fromChainCheck = this.wallGeometryService.checkChainLength(
+      fromFarmId,
+      existingWalls,
+    );
+    const toChainCheck = this.wallGeometryService.checkChainLength(
+      toFarmId,
+      existingWalls,
+    );
+
     if (fromChainCheck.isTooLong || toChainCheck.isTooLong) {
       throw new BadRequestException(
-        'Cannot create wall: This would create a chain of 7+ connections without closing the loop. You must close an existing loop first.'
+        'Cannot create wall: This would create a chain of 7+ connections without closing the loop. You must close an existing loop first.',
       );
     }
 
     // Check if this wall would create a loop
-    const potentialLoop = this.wallGeometryService.detectLoop(fromFarmId, toFarmId, existingWalls);
-    
+    const potentialLoop = this.wallGeometryService.detectLoop(
+      fromFarmId,
+      toFarmId,
+      existingWalls,
+    );
+
     let loopResult: { farms: string[]; upgraded: boolean } | undefined;
 
     if (potentialLoop) {
       // Validate the loop
-      const loopValidation = this.wallGeometryService.validateLoop(potentialLoop);
+      const loopValidation =
+        this.wallGeometryService.validateLoop(potentialLoop);
       if (!loopValidation.isValid) {
-        throw new BadRequestException(`Cannot create loop: ${loopValidation.reason}`);
+        throw new BadRequestException(
+          `Cannot create loop: ${loopValidation.reason}`,
+        );
       }
 
       // Loop is valid, prepare for farm upgrades
@@ -130,14 +171,16 @@ export class WallsService {
 
     // Calculate and process purchase cost
     const wallCost = WALL_CREATION_COST;
-    
-    console.log(`💰 [WALL CREATE] Processing purchase for wall creation - Distance: ${distance.toFixed(1)}m, Cost: ${wallCost.silver} silver, ${wallCost.gold} gold, ${wallCost.platinum} platinum`);
-    
+
+    console.log(
+      `💰 [WALL CREATE] Processing purchase for wall creation - Distance: ${distance.toFixed(1)}m, Cost: ${wallCost.silver} silver, ${wallCost.gold} gold, ${wallCost.platinum} platinum`,
+    );
+
     // Make the purchase (this will validate funds and deduct currency)
     const purchaseResult = await this.purchasesService.makePurchase(
       owner.id,
       wallCost,
-      'wall creation'
+      'wall creation',
     );
 
     console.log(`✅ [WALL CREATE] Purchase successful, creating wall...`);
@@ -159,14 +202,17 @@ export class WallsService {
       const allWallsAfterCreation = await this.wallRepository.getAllWalls();
       await this.farmsService.recalculateFarmLevelsAfterWallChange(
         [String(fromFarmId), String(toFarmId)],
-        allWallsAfterCreation
+        allWallsAfterCreation,
       );
-      
+
       if (loopResult) {
         loopResult.upgraded = true;
       }
     } catch (error) {
-      console.error('Error recalculating farm levels after wall creation:', error);
+      console.error(
+        'Error recalculating farm levels after wall creation:',
+        error,
+      );
       // Don't fail the wall creation if level calculation fails
     }
 
@@ -212,9 +258,13 @@ export class WallsService {
     return this.wallRepository.findByFarm(farmId);
   }
 
-  async update(id: string, updateWallDto: UpdateWallDto, currentUser?: User): Promise<Wall> {
+  async update(
+    id: string,
+    updateWallDto: UpdateWallDto,
+    currentUser?: User,
+  ): Promise<Wall> {
     const wall = await this.findOne(id);
-    
+
     // Check if user owns the wall (if currentUser is provided)
     if (currentUser && wall.owner.id !== currentUser.id) {
       throw new BadRequestException('You can only update your own walls');
@@ -223,15 +273,18 @@ export class WallsService {
     // Update the wall with provided data
     Object.assign(wall, updateWallDto);
     const updatedWall = await this.wallRepository.update(id, wall);
-    
+
     if (!updatedWall) {
       throw new NotFoundException('Failed to update wall');
     }
-    
+
     return updatedWall;
   }
 
-  async remove(id: string, currentUser?: User): Promise<{
+  async remove(
+    id: string,
+    currentUser?: User,
+  ): Promise<{
     success: boolean;
     rewardResult?: {
       reward: any;
@@ -239,18 +292,22 @@ export class WallsService {
     };
   }> {
     const wall = await this.findOne(id);
-    
+
     // Check if user owns the wall (if currentUser is provided)
     if (currentUser && wall.owner.id !== currentUser.id) {
       throw new BadRequestException('You can only delete your own walls');
     }
 
-    console.log(`🗑️ [WALL DELETE] Deleting wall ${id} between ${wall.fromFarm.name} and ${wall.toFarm.name}`);
+    console.log(
+      `🗑️ [WALL DELETE] Deleting wall ${id} between ${wall.fromFarm.name} and ${wall.toFarm.name}`,
+    );
 
     // Calculate deletion reward before deleting
     const deletionReward = WALL_DELETION_REWARD;
-    
-    console.log(`💰 [WALL DELETE] Calculated deletion reward: ${deletionReward.silver} silver, ${deletionReward.gold} gold, ${deletionReward.platinum} platinum`);
+
+    console.log(
+      `💰 [WALL DELETE] Calculated deletion reward: ${deletionReward.silver} silver, ${deletionReward.gold} gold, ${deletionReward.platinum} platinum`,
+    );
 
     // Store affected farm IDs before deletion
     const affectedFarmIds = [String(wall.fromFarm.id), String(wall.toFarm.id)];
@@ -259,11 +316,16 @@ export class WallsService {
 
     // Give deletion reward to the user
     let rewardResult;
-    if (currentUser && (deletionReward.silver > 0 || deletionReward.gold > 0 || deletionReward.platinum > 0)) {
+    if (
+      currentUser &&
+      (deletionReward.silver > 0 ||
+        deletionReward.gold > 0 ||
+        deletionReward.platinum > 0)
+    ) {
       rewardResult = await this.purchasesService.giveReward(
         currentUser.id,
         deletionReward,
-        `wall deletion (${wall.fromFarm.name} ↔ ${wall.toFarm.name})`
+        `wall deletion (${wall.fromFarm.name} ↔ ${wall.toFarm.name})`,
       );
     }
 
@@ -272,24 +334,28 @@ export class WallsService {
       const allWallsAfterRemoval = await this.wallRepository.getAllWalls();
       await this.farmsService.recalculateFarmLevelsAfterWallChange(
         affectedFarmIds,
-        allWallsAfterRemoval
+        allWallsAfterRemoval,
       );
     } catch (error) {
-      console.error('Error recalculating farm levels after wall removal:', error);
+      console.error(
+        'Error recalculating farm levels after wall removal:',
+        error,
+      );
       // Don't fail the wall deletion if level calculation fails
     }
 
     console.log(`✅ [WALL DELETE] Successfully deleted wall with reward`);
-    
+
     return {
       success: true,
-      rewardResult: rewardResult ? {
-        reward: rewardResult.reward,
-        updatedUser: rewardResult.updatedUser,
-      } : undefined,
+      rewardResult: rewardResult
+        ? {
+            reward: rewardResult.reward,
+            updatedUser: rewardResult.updatedUser,
+          }
+        : undefined,
     };
   }
-
 
   /**
    * Calculate distance between two GPS coordinates using Haversine formula
@@ -325,7 +391,7 @@ export class WallsService {
   async healWall(
     wallId: string,
     currentUser: User,
-    userLocation: { latitude: number; longitude: number }
+    userLocation: { latitude: number; longitude: number },
   ): Promise<HealResult> {
     try {
       const wall = await this.findOne(wallId);
@@ -345,20 +411,34 @@ export class WallsService {
       }
 
       // Validate farm data
-      if (!wall.fromFarm || !wall.fromFarm.location || !wall.fromFarm.location.coordinates) {
+      if (
+        !wall.fromFarm ||
+        !wall.fromFarm.location ||
+        !wall.fromFarm.location.coordinates
+      ) {
         throw new BadRequestException('From farm location data is missing');
       }
 
-      if (!wall.toFarm || !wall.toFarm.location || !wall.toFarm.location.coordinates) {
+      if (
+        !wall.toFarm ||
+        !wall.toFarm.location ||
+        !wall.toFarm.location.coordinates
+      ) {
         throw new BadRequestException('To farm location data is missing');
       }
 
       // Validate coordinate arrays
-      if (!Array.isArray(wall.fromFarm.location.coordinates) || wall.fromFarm.location.coordinates.length < 2) {
+      if (
+        !Array.isArray(wall.fromFarm.location.coordinates) ||
+        wall.fromFarm.location.coordinates.length < 2
+      ) {
         throw new BadRequestException('From farm coordinates are invalid');
       }
 
-      if (!Array.isArray(wall.toFarm.location.coordinates) || wall.toFarm.location.coordinates.length < 2) {
+      if (
+        !Array.isArray(wall.toFarm.location.coordinates) ||
+        wall.toFarm.location.coordinates.length < 2
+      ) {
         throw new BadRequestException('To farm coordinates are invalid');
       }
 
@@ -380,8 +460,8 @@ export class WallsService {
       if (distanceToFromFarm > 40 && distanceToToFarm > 40) {
         throw new BadRequestException(
           `You must be within 40 meters of one of the connected farms to heal this wall. ` +
-          `You are ${distanceToFromFarm.toFixed(1)}m from ${wall.fromFarm.name} and ` +
-          `${distanceToToFarm.toFixed(1)}m from ${wall.toFarm.name}.`
+            `You are ${distanceToFromFarm.toFixed(1)}m from ${wall.fromFarm.name} and ` +
+            `${distanceToToFarm.toFixed(1)}m from ${wall.toFarm.name}.`,
         );
       }
 
@@ -390,23 +470,26 @@ export class WallsService {
         if (wall.health >= 100) {
           throw new BadRequestException('Wall is already at full health');
         }
-        
-        const minutesRemaining = this.wallHealthService.getTimeUntilNextHeal(wall);
+
+        const minutesRemaining =
+          this.wallHealthService.getTimeUntilNextHeal(wall);
         throw new BadRequestException(
-          `You can heal this wall again in ${minutesRemaining} minute${minutesRemaining !== 1 ? 's' : ''}`
+          `You can heal this wall again in ${minutesRemaining} minute${minutesRemaining !== 1 ? 's' : ''}`,
         );
       }
 
       // Process payment for healing before applying the heal
       const healCost = WALL_HEAL_COST;
-      
-      console.log(`💰 [WALL HEAL] Processing payment for wall healing - Cost: ${healCost.silver} silver, ${healCost.gold} gold, ${healCost.platinum} platinum`);
-      
+
+      console.log(
+        `💰 [WALL HEAL] Processing payment for wall healing - Cost: ${healCost.silver} silver, ${healCost.gold} gold, ${healCost.platinum} platinum`,
+      );
+
       // Make the purchase (this will validate funds and deduct currency)
-      const purchaseResult = await this.purchasesService.makePurchase(
+      await this.purchasesService.makePurchase(
         currentUser.id,
         healCost,
-        `wall healing (${wall.fromFarm.name} ↔ ${wall.toFarm.name})`
+        `wall healing (${wall.fromFarm.name} ↔ ${wall.toFarm.name})`,
       );
 
       console.log(`✅ [WALL HEAL] Payment successful, applying healing...`);
@@ -423,12 +506,12 @@ export class WallsService {
       return healResult;
     } catch (error) {
       this.logger.error(`Error healing wall ${wallId}:`, error);
-      
+
       // If it's already a BadRequestException, re-throw it
       if (error instanceof BadRequestException) {
         throw error;
       }
-      
+
       // For any other error, throw a generic internal server error
       throw new BadRequestException('Failed to heal wall. Please try again.');
     }
@@ -446,7 +529,17 @@ export class WallsService {
    * Update only health-related fields without full domain mapping
    * Used by scheduler to avoid mapping issues with unpopulated references
    */
-  async updateHealthOnly(id: string, health: number, lastDamageAt?: Date, level?: number): Promise<void> {
-    return this.wallRepository.updateHealthOnly(id, health, lastDamageAt, level);
+  async updateHealthOnly(
+    id: string,
+    health: number,
+    lastDamageAt?: Date,
+    level?: number,
+  ): Promise<void> {
+    return this.wallRepository.updateHealthOnly(
+      id,
+      health,
+      lastDamageAt,
+      level,
+    );
   }
 }

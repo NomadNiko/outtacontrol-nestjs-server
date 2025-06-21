@@ -42,7 +42,10 @@ export class FarmsDocumentRepository implements FarmRepository {
       where.isActive = filterOptions.isActive;
     }
 
-    if (filterOptions?.levelMin !== undefined || filterOptions?.levelMax !== undefined) {
+    if (
+      filterOptions?.levelMin !== undefined ||
+      filterOptions?.levelMax !== undefined
+    ) {
       where.level = {};
       if (filterOptions.levelMin !== undefined) {
         where.level.$gte = filterOptions.levelMin;
@@ -151,9 +154,13 @@ export class FarmsDocumentRepository implements FarmRepository {
 
     const filter = { _id: id };
     const farmObject = await this.farmsModel
-      .findOneAndUpdate(filter, FarmMapper.toPersistence(clonedPayload as Farm), {
-        new: true,
-      })
+      .findOneAndUpdate(
+        filter,
+        FarmMapper.toPersistence(clonedPayload as Farm),
+        {
+          new: true,
+        },
+      )
       .populate('owner')
       .exec();
 

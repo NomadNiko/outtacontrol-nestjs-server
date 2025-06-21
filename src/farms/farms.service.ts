@@ -1,4 +1,10 @@
-import { Injectable, BadRequestException, NotFoundException, Inject, forwardRef } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+  Inject,
+  forwardRef,
+} from '@nestjs/common';
 import { IPaginationOptions } from '../utils/types/pagination-options';
 import { Farm } from './domain/farm';
 import { CreateFarmDto } from './dto/create-farm.dto';
@@ -12,7 +18,10 @@ import { UsersService } from '../users/users.service';
 import { Wall } from '../walls/domain/wall';
 import { WallRepository } from '../walls/infrastructure/persistence/wall.repository';
 import { PurchasesService } from '../purchases/purchases.service';
-import { FARM_CREATION_COST, FARM_DELETION_REWARD } from '../purchases/config/purchase-costs.config';
+import {
+  FARM_CREATION_COST,
+  FARM_DELETION_REWARD,
+} from '../purchases/config/purchase-costs.config';
 
 @Injectable()
 export class FarmsService {
@@ -27,7 +36,10 @@ export class FarmsService {
     private readonly purchasesService: PurchasesService,
   ) {}
 
-  async create(createFarmDto: CreateFarmDto, owner: User): Promise<{
+  async create(
+    createFarmDto: CreateFarmDto,
+    owner: User,
+  ): Promise<{
     farm: Farm;
     purchaseResult: {
       cost: any;
@@ -50,14 +62,16 @@ export class FarmsService {
     // Calculate and process purchase cost
     const farmLevel = 1; // All new farms start at level 1
     const farmCost = FARM_CREATION_COST;
-    
-    console.log(`💰 [FARM CREATE] Processing purchase for farm creation - Cost: ${farmCost.silver} silver, ${farmCost.gold} gold, ${farmCost.platinum} platinum`);
-    
+
+    console.log(
+      `💰 [FARM CREATE] Processing purchase for farm creation - Cost: ${farmCost.silver} silver, ${farmCost.gold} gold, ${farmCost.platinum} platinum`,
+    );
+
     // Make the purchase (this will validate funds and deduct currency)
     const purchaseResult = await this.purchasesService.makePurchase(
       owner.id,
       farmCost,
-      'farm creation'
+      'farm creation',
     );
 
     console.log(`✅ [FARM CREATE] Purchase successful, creating farm...`);
@@ -79,7 +93,9 @@ export class FarmsService {
 
     const createdFarm = await this.farmRepository.create(farm);
 
-    console.log(`🚜 [FARM CREATE] Farm "${farm.name}" created successfully at level ${farmLevel}`);
+    console.log(
+      `🚜 [FARM CREATE] Farm "${farm.name}" created successfully at level ${farmLevel}`,
+    );
 
     return {
       farm: createdFarm,
@@ -140,7 +156,7 @@ export class FarmsService {
     currentUser: User,
   ): Promise<Farm> {
     const farm = await this.findOne(id);
-    
+
     // Check if user owns the farm
     if (farm.owner.id !== currentUser.id) {
       throw new BadRequestException('You can only update your own farms');
@@ -169,7 +185,10 @@ export class FarmsService {
     return updatedFarm;
   }
 
-  async remove(id: string, currentUser: User): Promise<{
+  async remove(
+    id: string,
+    currentUser: User,
+  ): Promise<{
     success: boolean;
     rewardResult?: {
       reward: any;
@@ -177,7 +196,7 @@ export class FarmsService {
     };
   }> {
     const farm = await this.findOne(id);
-    
+
     // Check if user owns the farm
     if (farm.owner.id !== currentUser.id) {
       throw new BadRequestException('You can only delete your own farms');
@@ -187,46 +206,64 @@ export class FarmsService {
 
     // Calculate deletion reward before deleting
     const deletionReward = FARM_DELETION_REWARD;
-    
-    console.log(`💰 [FARM DELETE] Calculated deletion reward: ${deletionReward.silver} silver, ${deletionReward.gold} gold, ${deletionReward.platinum} platinum`);
+
+    console.log(
+      `💰 [FARM DELETE] Calculated deletion reward: ${deletionReward.silver} silver, ${deletionReward.gold} gold, ${deletionReward.platinum} platinum`,
+    );
 
     // First, find and delete all walls connected to this farm
     console.log(`🗑️ [FARM DELETE] Finding walls connected to farm ${id}`);
     const connectedWalls = await this.wallRepository.findByFarm(id);
-    console.log(`🗑️ [FARM DELETE] Found ${connectedWalls.length} walls connected to farm ${farm.name}`);
+    console.log(
+      `🗑️ [FARM DELETE] Found ${connectedWalls.length} walls connected to farm ${farm.name}`,
+    );
 
     // Delete all connected walls (Note: Wall deletion rewards are handled separately in walls service)
     for (const wall of connectedWalls) {
-      console.log(`🗑️ [FARM DELETE] Deleting wall ${wall.id} (${wall.fromFarm.name} ↔ ${wall.toFarm.name})`);
+      console.log(
+        `🗑️ [FARM DELETE] Deleting wall ${wall.id} (${wall.fromFarm.name} ↔ ${wall.toFarm.name})`,
+      );
       await this.wallRepository.remove(wall.id);
     }
 
     // Then delete the farm
     console.log(`🗑️ [FARM DELETE] Deleting farm ${farm.name}`);
     await this.farmRepository.remove(id);
-    
+
     // Give deletion reward to the user
     let rewardResult;
-    if (deletionReward.silver > 0 || deletionReward.gold > 0 || deletionReward.platinum > 0) {
+    if (
+      deletionReward.silver > 0 ||
+      deletionReward.gold > 0 ||
+      deletionReward.platinum > 0
+    ) {
       rewardResult = await this.purchasesService.giveReward(
         currentUser.id,
         deletionReward,
-        `farm deletion (${farm.name})`
+        `farm deletion (${farm.name})`,
       );
     }
-    
-    console.log(`✅ [FARM DELETE] Successfully deleted farm ${farm.name} and ${connectedWalls.length} connected walls with reward`);
-    
+
+    console.log(
+      `✅ [FARM DELETE] Successfully deleted farm ${farm.name} and ${connectedWalls.length} connected walls with reward`,
+    );
+
     return {
       success: true,
-      rewardResult: rewardResult ? {
-        reward: rewardResult.reward,
-        updatedUser: rewardResult.updatedUser,
-      } : undefined,
+      rewardResult: rewardResult
+        ? {
+            reward: rewardResult.reward,
+            updatedUser: rewardResult.updatedUser,
+          }
+        : undefined,
     };
   }
 
-  async harvest(id: string, currentUser: User, userLocation: { latitude: number; longitude: number }): Promise<{
+  async harvest(
+    id: string,
+    currentUser: User,
+    userLocation: { latitude: number; longitude: number },
+  ): Promise<{
     farm: Farm;
     harvest: {
       silverEarned: number;
@@ -258,11 +295,11 @@ export class FarmsService {
     });
 
     const farm = await this.findOne(id);
-    
+
     // Determine if this is the owner or someone stealing
     const isOwner = farm.owner.id === currentUser.id;
     const isSteal = !isOwner;
-    
+
     console.log('🔍 [HARVEST] Ownership check:', {
       farmOwnerId: farm.owner.id,
       currentUserId: currentUser.id,
@@ -280,7 +317,7 @@ export class FarmsService {
 
     if (distance > 40) {
       throw new BadRequestException(
-        `You must be within 40 meters of the farm to harvest. You are ${distance.toFixed(1)} meters away.`
+        `You must be within 40 meters of the farm to harvest. You are ${distance.toFixed(1)} meters away.`,
       );
     }
 
@@ -297,8 +334,11 @@ export class FarmsService {
     // Calculate harvest
     console.log('🧮 [HARVEST] Calculating harvest...');
     const baseHarvestResult = this.farmHarvestService.calculateHarvest(farm);
-    console.log('💰 [HARVEST] Base harvest calculation result:', baseHarvestResult);
-    
+    console.log(
+      '💰 [HARVEST] Base harvest calculation result:',
+      baseHarvestResult,
+    );
+
     // Apply steal rate if not the owner (25% rounded down)
     let finalHarvestResult = baseHarvestResult;
     if (isSteal) {
@@ -307,14 +347,22 @@ export class FarmsService {
         ...baseHarvestResult,
         silverEarned: Math.floor(baseHarvestResult.silverEarned * stealRate),
         goldEarned: Math.floor(baseHarvestResult.goldEarned * stealRate),
-        platinumEarned: Math.floor(baseHarvestResult.platinumEarned * stealRate),
+        platinumEarned: Math.floor(
+          baseHarvestResult.platinumEarned * stealRate,
+        ),
       };
       console.log('🏴‍☠️ [HARVEST] Applied 25% steal rate:', finalHarvestResult);
     }
-    
+
     // Check if there's anything to harvest
-    if (finalHarvestResult.silverEarned === 0 && finalHarvestResult.goldEarned === 0 && finalHarvestResult.platinumEarned === 0) {
-      const action = isSteal ? 'steal from this farm' : 'harvest from this farm';
+    if (
+      finalHarvestResult.silverEarned === 0 &&
+      finalHarvestResult.goldEarned === 0 &&
+      finalHarvestResult.platinumEarned === 0
+    ) {
+      const action = isSteal
+        ? 'steal from this farm'
+        : 'harvest from this farm';
       throw new BadRequestException(`No currency available to ${action} yet`);
     }
 
@@ -327,14 +375,36 @@ export class FarmsService {
     console.log('✅ [HARVEST] Farm updated successfully');
 
     // Calculate new currency values using fresh user data
-    const newPlatinum = (freshUser.platinum || 0) + finalHarvestResult.platinumEarned;
+    const newPlatinum =
+      (freshUser.platinum || 0) + finalHarvestResult.platinumEarned;
     const newGold = (freshUser.gold || 0) + finalHarvestResult.goldEarned;
     const newSilver = (freshUser.silver || 0) + finalHarvestResult.silverEarned;
 
     console.log('💸 [HARVEST] Updating user currency:');
-    console.log('  - Current platinum:', freshUser.platinum || 0, '+ earned:', finalHarvestResult.platinumEarned, '= new:', newPlatinum);
-    console.log('  - Current gold:', freshUser.gold || 0, '+ earned:', finalHarvestResult.goldEarned, '= new:', newGold);
-    console.log('  - Current silver:', freshUser.silver || 0, '+ earned:', finalHarvestResult.silverEarned, '= new:', newSilver);
+    console.log(
+      '  - Current platinum:',
+      freshUser.platinum || 0,
+      '+ earned:',
+      finalHarvestResult.platinumEarned,
+      '= new:',
+      newPlatinum,
+    );
+    console.log(
+      '  - Current gold:',
+      freshUser.gold || 0,
+      '+ earned:',
+      finalHarvestResult.goldEarned,
+      '= new:',
+      newGold,
+    );
+    console.log(
+      '  - Current silver:',
+      freshUser.silver || 0,
+      '+ earned:',
+      finalHarvestResult.silverEarned,
+      '= new:',
+      newSilver,
+    );
 
     // Update user's currency
     const updatedUser = await this.usersService.update(freshUser.id, {
@@ -378,14 +448,14 @@ export class FarmsService {
    * Check and remove farms with 0 health
    * This method should be called periodically or after certain events
    */
-  async checkAndRemoveUnhealthyFarms(): Promise<number> {
+  checkAndRemoveUnhealthyFarms(): Promise<number> {
     // This is a placeholder for now - in the future you might want to:
     // 1. Add a scheduled job to check all farms
     // 2. Implement health degradation over time
     // 3. Add notifications before deletion
-    
+
     // For now, we'll just return 0 since health doesn't decrease automatically yet
-    return 0;
+    return Promise.resolve(0);
   }
 
   async checkProximity({
@@ -414,12 +484,15 @@ export class FarmsService {
    */
   async recalculateFarmLevelsAfterWallChange(
     affectedFarmIds: string[],
-    allWalls: Wall[]
+    allWalls: Wall[],
   ): Promise<void> {
     try {
       // Get all farms that might be affected
-      const extendedAffectedIds = this.farmLevelService.getAffectedFarms(affectedFarmIds, allWalls);
-      
+      const extendedAffectedIds = this.farmLevelService.getAffectedFarms(
+        affectedFarmIds,
+        allWalls,
+      );
+
       // Get all affected farms
       const affectedFarms: Farm[] = [];
       for (const farmId of extendedAffectedIds) {
@@ -436,14 +509,16 @@ export class FarmsService {
       const newLevels = await this.farmLevelService.recalculateFarmLevels(
         extendedAffectedIds,
         affectedFarms,
-        allWalls
+        allWalls,
       );
 
       // Update farms with new levels
       for (const [farmId, newLevel] of newLevels.entries()) {
-        const farm = affectedFarms.find(f => String(f.id) === String(farmId));
+        const farm = affectedFarms.find((f) => String(f.id) === String(farmId));
         if (farm && farm.level !== newLevel) {
-          console.log(`Updating farm ${farm.name} from level ${farm.level} to level ${newLevel}`);
+          console.log(
+            `Updating farm ${farm.name} from level ${farm.level} to level ${newLevel}`,
+          );
           await this.farmRepository.update(farmId, { level: newLevel });
         }
       }
@@ -482,8 +557,9 @@ export class FarmsService {
    * Used by wall damage scheduler when walls are destroyed
    */
   async updateFarmLevel(id: string, newLevel: number): Promise<Farm> {
-    const farm = await this.findOne(id);
-    
+    // Verify farm exists
+    await this.findOne(id);
+
     // Update the farm level
     const updatedFarm = await this.farmRepository.update(id, {
       level: newLevel,

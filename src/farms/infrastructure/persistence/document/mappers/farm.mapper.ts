@@ -39,9 +39,9 @@ export class FarmMapper {
     };
 
     if (domainEntity.owner) {
-      persistenceEntity.owner = 
-        typeof domainEntity.owner === 'string' 
-          ? domainEntity.owner 
+      persistenceEntity.owner =
+        typeof domainEntity.owner === 'string'
+          ? domainEntity.owner
           : domainEntity.owner.id?.toString();
     }
 

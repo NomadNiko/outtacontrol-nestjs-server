@@ -28,7 +28,7 @@ export class UserUpdateService {
   ): Promise<NullableType<User>> {
     console.log('🔄 [USER UPDATE] Starting update for user:', id);
     console.log('📝 [USER UPDATE] Update DTO:', updateUserDto);
-    
+
     // Do not remove comment below.
     // <updating-property />
 
@@ -163,9 +163,9 @@ export class UserUpdateService {
     };
 
     console.log('📦 [USER UPDATE] Update payload:', updatePayload);
-    
+
     const result = await this.usersRepository.update(id, updatePayload);
-    
+
     console.log('✅ [USER UPDATE] Update result:', {
       id: result?.id,
       platinum: result?.platinum,

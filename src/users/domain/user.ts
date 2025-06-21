@@ -99,6 +99,24 @@ export class User {
   })
   silver: number;
 
+  @ApiProperty({
+    type: Number,
+    example: 0,
+    description: 'Total experience points earned',
+    default: 0,
+  })
+  xp: number;
+
+  @ApiProperty({
+    type: Number,
+    example: 1,
+    description: 'Current user level',
+    default: 1,
+    minimum: 1,
+    maximum: 50,
+  })
+  level: number;
+
   @ApiProperty()
   createdAt: Date;
 

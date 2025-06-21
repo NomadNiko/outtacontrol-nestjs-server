@@ -24,7 +24,10 @@ export abstract class WallRepository {
 
   abstract findByFarm(farmId: string): Promise<Wall[]>;
 
-  abstract findBetweenFarms(fromFarmId: string, toFarmId: string): Promise<NullableType<Wall>>;
+  abstract findBetweenFarms(
+    fromFarmId: string,
+    toFarmId: string,
+  ): Promise<NullableType<Wall>>;
 
   abstract getAllWalls(): Promise<Wall[]>;
 
@@ -34,5 +37,10 @@ export abstract class WallRepository {
 
   abstract remove(id: Wall['id']): Promise<void>;
 
-  abstract updateHealthOnly(id: Wall['id'], health: number, lastDamageAt?: Date, level?: number): Promise<void>;
+  abstract updateHealthOnly(
+    id: Wall['id'],
+    health: number,
+    lastDamageAt?: Date,
+    level?: number,
+  ): Promise<void>;
 }

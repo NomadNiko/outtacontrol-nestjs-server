@@ -212,10 +212,11 @@ export class FarmsController {
     return this.farmsService.update(id, updateFarmDto, request.user);
   }
 
-  @ApiOperation({ summary: 'Harvest a farm or steal from another user\'s farm' })
+  @ApiOperation({ summary: "Harvest a farm or steal from another user's farm" })
   @ApiResponse({
     status: HttpStatus.OK,
-    description: 'Farm has been successfully harvested. Returns full harvest for owned farms, 25% harvest for other users\' farms.',
+    description:
+      "Farm has been successfully harvested. Returns full harvest for owned farms, 25% harvest for other users' farms.",
   })
   @ApiResponse({
     status: HttpStatus.NOT_FOUND,
@@ -223,7 +224,8 @@ export class FarmsController {
   })
   @ApiResponse({
     status: HttpStatus.BAD_REQUEST,
-    description: 'Farm has no harvestable currency, is inactive, or has no health.',
+    description:
+      'Farm has no harvestable currency, is inactive, or has no health.',
   })
   @ApiBearerAuth()
   @UseGuards(AuthGuard('jwt'))
@@ -233,9 +235,9 @@ export class FarmsController {
     groups: ['admin'],
   })
   async harvest(
-    @Param('id') id: string, 
+    @Param('id') id: string,
     @Body() userLocation: UserLocationDto,
-    @Request() request
+    @Request() request,
   ) {
     return this.farmsService.harvest(id, request.user, userLocation);
   }
@@ -262,11 +264,13 @@ export class FarmsController {
     return {
       success: result.success,
       reward: result.rewardResult?.reward,
-      userCurrency: result.rewardResult?.updatedUser ? {
-        platinum: result.rewardResult.updatedUser.platinum,
-        gold: result.rewardResult.updatedUser.gold,
-        silver: result.rewardResult.updatedUser.silver,
-      } : undefined,
+      userCurrency: result.rewardResult?.updatedUser
+        ? {
+            platinum: result.rewardResult.updatedUser.platinum,
+            gold: result.rewardResult.updatedUser.gold,
+            silver: result.rewardResult.updatedUser.silver,
+          }
+        : undefined,
     };
   }
 }

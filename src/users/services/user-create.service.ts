@@ -142,6 +142,8 @@ export class UserCreateService {
       platinum: 0,
       gold: 10,
       silver: 200,
+      xp: 0,
+      level: 1,
     });
   }
 }

@@ -1,14 +1,11 @@
 import { Injectable, BadRequestException, Logger } from '@nestjs/common';
 import { User } from '../users/domain/user';
 import { UsersService } from '../users/users.service';
-import { 
-  PurchaseCost, 
-  PurchaseReward, 
-  addCurrency, 
-  subtractCurrency, 
-  hasSufficientFunds,
+import {
+  PurchaseCost,
+  PurchaseReward,
   needsReplenishment,
-  calculateReplenishment
+  calculateReplenishment,
 } from './config/purchase-costs.config';
 
 export interface PurchaseResult {
@@ -27,9 +24,7 @@ export interface RewardResult {
 export class PurchasesService {
   private readonly logger = new Logger(PurchasesService.name);
 
-  constructor(
-    private readonly usersService: UsersService,
-  ) {}
+  constructor(private readonly usersService: UsersService) {}
 
   /**
    * Validate if user has sufficient currency for a purchase
@@ -39,10 +34,14 @@ export class PurchasesService {
     const userGold = user.gold || 0;
     const userPlatinum = user.platinum || 0;
 
-    if (userSilver < cost.silver || userGold < cost.gold || userPlatinum < cost.platinum) {
+    if (
+      userSilver < cost.silver ||
+      userGold < cost.gold ||
+      userPlatinum < cost.platinum
+    ) {
       const required: string[] = [];
       const available: string[] = [];
-      
+
       if (cost.silver > 0) {
         required.push(`${cost.silver} silver`);
         available.push(`${userSilver} silver`);
@@ -57,7 +56,7 @@ export class PurchasesService {
       }
 
       throw new BadRequestException(
-        `Insufficient funds. Required: ${required.join(', ')}. Available: ${available.join(', ')}.`
+        `Insufficient funds. Required: ${required.join(', ')}. Available: ${available.join(', ')}.`,
       );
     }
   }
@@ -65,9 +64,17 @@ export class PurchasesService {
   /**
    * Deduct currency from user for a purchase
    */
-  async makePurchase(userId: User['id'], cost: PurchaseCost, itemType: string): Promise<PurchaseResult> {
-    this.logger.log(`💰 [PURCHASE] Making purchase for user ${userId}: ${itemType}`);
-    this.logger.log(`💸 [PURCHASE] Cost: ${cost.silver} silver, ${cost.gold} gold, ${cost.platinum} platinum`);
+  async makePurchase(
+    userId: User['id'],
+    cost: PurchaseCost,
+    itemType: string,
+  ): Promise<PurchaseResult> {
+    this.logger.log(
+      `💰 [PURCHASE] Making purchase for user ${userId}: ${itemType}`,
+    );
+    this.logger.log(
+      `💸 [PURCHASE] Cost: ${cost.silver} silver, ${cost.gold} gold, ${cost.platinum} platinum`,
+    );
 
     // Get fresh user data
     const user = await this.usersService.findById(userId);
@@ -94,7 +101,9 @@ export class PurchasesService {
       throw new BadRequestException('Failed to update user currency');
     }
 
-    this.logger.log(`✅ [PURCHASE] Purchase successful. New balances: ${newSilver} silver, ${newGold} gold, ${newPlatinum} platinum`);
+    this.logger.log(
+      `✅ [PURCHASE] Purchase successful. New balances: ${newSilver} silver, ${newGold} gold, ${newPlatinum} platinum`,
+    );
 
     return {
       success: true,
@@ -106,9 +115,17 @@ export class PurchasesService {
   /**
    * Give currency reward to user for a deletion
    */
-  async giveReward(userId: User['id'], reward: PurchaseReward, itemType: string): Promise<RewardResult> {
-    this.logger.log(`🎁 [REWARD] Giving reward to user ${userId}: ${itemType} deletion`);
-    this.logger.log(`💰 [REWARD] Reward: ${reward.silver} silver, ${reward.gold} gold, ${reward.platinum} platinum`);
+  async giveReward(
+    userId: User['id'],
+    reward: PurchaseReward,
+    itemType: string,
+  ): Promise<RewardResult> {
+    this.logger.log(
+      `🎁 [REWARD] Giving reward to user ${userId}: ${itemType} deletion`,
+    );
+    this.logger.log(
+      `💰 [REWARD] Reward: ${reward.silver} silver, ${reward.gold} gold, ${reward.platinum} platinum`,
+    );
 
     // Get fresh user data
     const user = await this.usersService.findById(userId);
@@ -132,7 +149,9 @@ export class PurchasesService {
       throw new BadRequestException('Failed to update user currency');
     }
 
-    this.logger.log(`✅ [REWARD] Reward given successfully. New balances: ${newSilver} silver, ${newGold} gold, ${newPlatinum} platinum`);
+    this.logger.log(
+      `✅ [REWARD] Reward given successfully. New balances: ${newSilver} silver, ${newGold} gold, ${newPlatinum} platinum`,
+    );
 
     return {
       success: true,
@@ -156,8 +175,12 @@ export class PurchasesService {
       return null; // No replenishment needed
     }
 
-    this.logger.log(`🌙 [REPLENISH] User ${userId} needs currency replenishment`);
-    this.logger.log(`💰 [REPLENISH] Current: ${user.silver} silver, ${user.gold} gold`);
+    this.logger.log(
+      `🌙 [REPLENISH] User ${userId} needs currency replenishment`,
+    );
+    this.logger.log(
+      `💰 [REPLENISH] Current: ${user.silver} silver, ${user.gold} gold`,
+    );
 
     // Calculate replenishment amount
     const replenishment = calculateReplenishment(user);
@@ -178,7 +201,9 @@ export class PurchasesService {
       throw new BadRequestException('Failed to update user currency');
     }
 
-    this.logger.log(`✅ [REPLENISH] Currency replenished successfully. Added: ${replenishment.silver} silver, ${replenishment.gold} gold. New balances: ${newSilver} silver, ${newGold} gold, ${newPlatinum} platinum`);
+    this.logger.log(
+      `✅ [REPLENISH] Currency replenished successfully. Added: ${replenishment.silver} silver, ${replenishment.gold} gold. New balances: ${newSilver} silver, ${newGold} gold, ${newPlatinum} platinum`,
+    );
 
     return {
       success: true,
@@ -191,9 +216,17 @@ export class PurchasesService {
    * Give midnight rewards based on farms and walls owned
    * 1 platinum per farm + 1 platinum per wall
    */
-  async giveMidnightRewards(userId: User['id'], farmCount: number, wallCount: number): Promise<RewardResult> {
-    this.logger.log(`🌙 [MIDNIGHT REWARD] Giving midnight rewards to user ${userId}`);
-    this.logger.log(`🏛️ [MIDNIGHT REWARD] Farms: ${farmCount}, Walls: ${wallCount}`);
+  async giveMidnightRewards(
+    userId: User['id'],
+    farmCount: number,
+    wallCount: number,
+  ): Promise<RewardResult> {
+    this.logger.log(
+      `🌙 [MIDNIGHT REWARD] Giving midnight rewards to user ${userId}`,
+    );
+    this.logger.log(
+      `🏛️ [MIDNIGHT REWARD] Farms: ${farmCount}, Walls: ${wallCount}`,
+    );
 
     // Calculate platinum reward: 1 per farm + 1 per wall
     const platinumReward = farmCount + wallCount;

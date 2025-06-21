@@ -4,6 +4,8 @@
       "Bash(yarn build)",
       "Bash(ls:*)",
       "Bash(cat:*)",
+      "Bash(curl:*)",
+      "Bash(jq:*)",
       "Bash(yarn build:*)"
     ],
     "deny": []

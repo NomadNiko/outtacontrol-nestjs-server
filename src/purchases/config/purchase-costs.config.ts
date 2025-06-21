@@ -69,7 +69,7 @@ export const MINIMUM_CURRENCY_AMOUNTS = {
  */
 export function addCurrency(
   base: { silver: number; gold: number; platinum: number },
-  addition: { silver: number; gold: number; platinum: number }
+  addition: { silver: number; gold: number; platinum: number },
 ): { silver: number; gold: number; platinum: number } {
   return {
     silver: (base.silver || 0) + (addition.silver || 0),
@@ -83,7 +83,7 @@ export function addCurrency(
  */
 export function subtractCurrency(
   base: { silver: number; gold: number; platinum: number },
-  cost: { silver: number; gold: number; platinum: number }
+  cost: { silver: number; gold: number; platinum: number },
 ): { silver: number; gold: number; platinum: number } {
   return {
     silver: (base.silver || 0) - (cost.silver || 0),
@@ -97,7 +97,7 @@ export function subtractCurrency(
  */
 export function hasSufficientFunds(
   userCurrency: { silver: number; gold: number; platinum: number },
-  cost: { silver: number; gold: number; platinum: number }
+  cost: { silver: number; gold: number; platinum: number },
 ): boolean {
   return (
     (userCurrency.silver || 0) >= (cost.silver || 0) &&
@@ -109,7 +109,11 @@ export function hasSufficientFunds(
 /**
  * Check if user needs midnight replenishment
  */
-export function needsReplenishment(userCurrency: { silver: number; gold: number; platinum: number }): boolean {
+export function needsReplenishment(userCurrency: {
+  silver: number;
+  gold: number;
+  platinum: number;
+}): boolean {
   return (
     (userCurrency.silver || 0) < MINIMUM_CURRENCY_AMOUNTS.silver ||
     (userCurrency.gold || 0) < MINIMUM_CURRENCY_AMOUNTS.gold
@@ -119,9 +123,16 @@ export function needsReplenishment(userCurrency: { silver: number; gold: number;
 /**
  * Calculate replenishment amount needed
  */
-export function calculateReplenishment(userCurrency: { silver: number; gold: number; platinum: number }): PurchaseReward {
+export function calculateReplenishment(userCurrency: {
+  silver: number;
+  gold: number;
+  platinum: number;
+}): PurchaseReward {
   return {
-    silver: Math.max(0, MINIMUM_CURRENCY_AMOUNTS.silver - (userCurrency.silver || 0)),
+    silver: Math.max(
+      0,
+      MINIMUM_CURRENCY_AMOUNTS.silver - (userCurrency.silver || 0),
+    ),
     gold: Math.max(0, MINIMUM_CURRENCY_AMOUNTS.gold - (userCurrency.gold || 0)),
     platinum: 0, // No platinum replenishment
   };

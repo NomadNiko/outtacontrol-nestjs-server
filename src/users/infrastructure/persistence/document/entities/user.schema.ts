@@ -90,6 +90,21 @@ export class UserSchemaClass extends EntityDocumentHelper {
   })
   silver: number;
 
+  @Prop({
+    type: Number,
+    default: 0,
+    min: 0,
+  })
+  xp: number;
+
+  @Prop({
+    type: Number,
+    default: 1,
+    min: 1,
+    max: 50,
+  })
+  level: number;
+
   @Prop({ default: now })
   createdAt: Date;
 

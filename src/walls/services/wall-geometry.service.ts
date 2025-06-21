@@ -72,7 +72,10 @@ export class WallGeometryService {
   /**
    * Check if a new wall would intersect with existing walls
    */
-  checkWallIntersection(newWall: { fromFarm: Farm; toFarm: Farm }, existingWalls: Wall[]): boolean {
+  checkWallIntersection(
+    newWall: { fromFarm: Farm; toFarm: Farm },
+    existingWalls: Wall[],
+  ): boolean {
     const newLine: LineSegment = {
       start: {
         lat: newWall.fromFarm.location.coordinates[1],
@@ -86,7 +89,12 @@ export class WallGeometryService {
 
     for (const wall of existingWalls) {
       // Skip walls with missing farm references
-      if (!wall.fromFarm || !wall.toFarm || !wall.fromFarm.id || !wall.toFarm.id) {
+      if (
+        !wall.fromFarm ||
+        !wall.toFarm ||
+        !wall.fromFarm.id ||
+        !wall.toFarm.id
+      ) {
         console.warn('Skipping wall with missing farm references:', wall.id);
         continue;
       }
@@ -123,35 +131,44 @@ export class WallGeometryService {
   /**
    * Detect if adding a wall would create a loop, and return the loop if found
    */
-  detectLoop(fromFarmId: string, toFarmId: string, existingWalls: Wall[]): string[] | null {
+  detectLoop(
+    fromFarmId: string,
+    toFarmId: string,
+    existingWalls: Wall[],
+  ): string[] | null {
     // Build adjacency list
     const graph = new Map<string, Set<string>>();
-    
+
     // Add existing walls to graph
     for (const wall of existingWalls) {
       // Skip walls with missing farm references
-      if (!wall.fromFarm || !wall.toFarm || !wall.fromFarm.id || !wall.toFarm.id) {
+      if (
+        !wall.fromFarm ||
+        !wall.toFarm ||
+        !wall.fromFarm.id ||
+        !wall.toFarm.id
+      ) {
         console.warn('Skipping wall with missing farm references:', wall.id);
         continue;
       }
 
       const fromId = String(wall.fromFarm.id);
       const toId = String(wall.toFarm.id);
-      
+
       if (!graph.has(fromId)) {
         graph.set(fromId, new Set());
       }
       if (!graph.has(toId)) {
         graph.set(toId, new Set());
       }
-      
+
       graph.get(fromId)!.add(toId);
       graph.get(toId)!.add(fromId);
     }
 
     // Try to find path from toFarmId to fromFarmId using existing connections
     const path = this.findPath(toFarmId, fromFarmId, graph);
-    
+
     if (path) {
       // Adding the new wall would complete a loop
       return [...path, fromFarmId]; // Complete the loop
@@ -180,34 +197,42 @@ export class WallGeometryService {
   /**
    * Check if a chain of connections is getting too long without closing
    */
-  checkChainLength(farmId: string, existingWalls: Wall[]): { isTooLong: boolean; chainLength: number } {
+  checkChainLength(
+    farmId: string,
+    existingWalls: Wall[],
+  ): { isTooLong: boolean; chainLength: number } {
     // Build adjacency list
     const graph = new Map<string, Set<string>>();
-    
+
     for (const wall of existingWalls) {
       // Skip walls with missing farm references
-      if (!wall.fromFarm || !wall.toFarm || !wall.fromFarm.id || !wall.toFarm.id) {
+      if (
+        !wall.fromFarm ||
+        !wall.toFarm ||
+        !wall.fromFarm.id ||
+        !wall.toFarm.id
+      ) {
         console.warn('Skipping wall with missing farm references:', wall.id);
         continue;
       }
 
       const fromId = String(wall.fromFarm.id);
       const toId = String(wall.toFarm.id);
-      
+
       if (!graph.has(fromId)) {
         graph.set(fromId, new Set());
       }
       if (!graph.has(toId)) {
         graph.set(toId, new Set());
       }
-      
+
       graph.get(fromId)!.add(toId);
       graph.get(toId)!.add(fromId);
     }
 
     // Find the longest path from this farm
     const longestPath = this.findLongestPath(farmId, graph);
-    
+
     return {
       isTooLong: longestPath >= 7,
       chainLength: longestPath,
@@ -215,7 +240,8 @@ export class WallGeometryService {
   }
 
   private orientation(p: Point, q: Point, r: Point): number {
-    const val = (q.lng - p.lng) * (r.lat - q.lat) - (q.lat - p.lat) * (r.lng - q.lng);
+    const val =
+      (q.lng - p.lng) * (r.lat - q.lat) - (q.lat - p.lat) * (r.lng - q.lng);
     if (val === 0) return 0; // colinear
     return val > 0 ? 1 : 2; // clock or counterclock wise
   }
@@ -229,7 +255,11 @@ export class WallGeometryService {
     );
   }
 
-  private findPath(start: string, end: string, graph: Map<string, Set<string>>): string[] | null {
+  private findPath(
+    start: string,
+    end: string,
+    graph: Map<string, Set<string>>,
+  ): string[] | null {
     const visited = new Set<string>();
     const path: string[] = [];
 
@@ -261,7 +291,10 @@ export class WallGeometryService {
     return null;
   }
 
-  private findLongestPath(start: string, graph: Map<string, Set<string>>): number {
+  private findLongestPath(
+    start: string,
+    graph: Map<string, Set<string>>,
+  ): number {
     const visited = new Set<string>();
 
     const dfs = (current: string): number => {

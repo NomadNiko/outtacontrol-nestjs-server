@@ -6,7 +6,7 @@ export interface HarvestRate {
 
 /**
  * Harvest rates per 5-minute cycle for each farm level
- * 
+ *
  * Level 1: 1 silver every 5 minutes
  * Level 2: 5 silver and 1 gold every 5 minutes
  * Level 3: 25 silver and 5 gold every 5 minutes

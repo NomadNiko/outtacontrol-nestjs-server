@@ -45,7 +45,8 @@ export class WallsController {
   })
   @ApiResponse({
     status: HttpStatus.BAD_REQUEST,
-    description: 'Invalid wall parameters (distance, intersection, loop constraints).',
+    description:
+      'Invalid wall parameters (distance, intersection, loop constraints).',
   })
   @ApiBearerAuth()
   @UseGuards(AuthGuard('jwt'))
@@ -201,11 +202,13 @@ export class WallsController {
     return {
       success: result.success,
       reward: result.rewardResult?.reward,
-      userCurrency: result.rewardResult?.updatedUser ? {
-        platinum: result.rewardResult.updatedUser.platinum,
-        gold: result.rewardResult.updatedUser.gold,
-        silver: result.rewardResult.updatedUser.silver,
-      } : undefined,
+      userCurrency: result.rewardResult?.updatedUser
+        ? {
+            platinum: result.rewardResult.updatedUser.platinum,
+            gold: result.rewardResult.updatedUser.gold,
+            silver: result.rewardResult.updatedUser.silver,
+          }
+        : undefined,
     };
   }
 
@@ -238,9 +241,9 @@ export class WallsController {
     const healResult = await this.wallsService.healWall(
       id,
       request.user,
-      userLocationDto
+      userLocationDto,
     );
-    
+
     // Return the updated wall with heal result info
     const wall = await this.wallsService.findOne(id);
     return {

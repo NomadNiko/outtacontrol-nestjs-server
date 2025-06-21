@@ -137,7 +137,7 @@ export class UsersDocumentRepository implements UserRepository {
     });
 
     const persistenceData = UserMapper.toPersistence(mergedUser);
-    
+
     console.log('💾 [USER REPO] Persistence data to save:', {
       platinum: persistenceData.platinum,
       gold: persistenceData.gold,

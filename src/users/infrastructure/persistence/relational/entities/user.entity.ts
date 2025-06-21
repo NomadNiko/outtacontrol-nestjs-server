@@ -75,6 +75,12 @@ export class UserEntity extends EntityRelationalHelper {
   @Column({ type: 'int', default: 0 })
   silver: number;
 
+  @Column({ type: 'int', default: 0 })
+  xp: number;
+
+  @Column({ type: 'int', default: 1 })
+  level: number;
+
   @CreateDateColumn()
   createdAt: Date;
 

@@ -1,9 +1,16 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsString, IsNumber, Min, Max, ValidateNested } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsString,
+  IsNumber,
+  Min,
+  Max,
+  ValidateNested,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class UserLocationDto {
-  @ApiProperty({ 
+  @ApiProperty({
     example: 37.7749,
     description: 'User current latitude',
   })
@@ -13,7 +20,7 @@ export class UserLocationDto {
   @Max(90)
   latitude: number;
 
-  @ApiProperty({ 
+  @ApiProperty({
     example: -122.4194,
     description: 'User current longitude',
   })

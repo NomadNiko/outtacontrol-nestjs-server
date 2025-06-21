@@ -11,13 +11,7 @@ import { WallsModule } from '../walls/walls.module';
     forwardRef(() => FarmsModule),
     forwardRef(() => WallsModule),
   ],
-  providers: [
-    PurchasesService,
-    MidnightRewardService,
-  ],
-  exports: [
-    PurchasesService,
-    MidnightRewardService,
-  ],
+  providers: [PurchasesService, MidnightRewardService],
+  exports: [PurchasesService, MidnightRewardService],
 })
 export class PurchasesModule {}

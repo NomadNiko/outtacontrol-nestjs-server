@@ -21,23 +21,23 @@ export class FarmHarvestService {
   calculateHarvest(farm: Farm): HarvestResult {
     const now = new Date();
     const lastHarvest = farm.lastHarvestAt || farm.createdAt;
-    
+
     // Calculate time difference in milliseconds
     const timeDifference = now.getTime() - lastHarvest.getTime();
-    
+
     // Convert to minutes
     const totalMinutes = Math.floor(timeDifference / (1000 * 60));
-    
+
     // Calculate harvest cycles (5 minutes per cycle)
     const harvestCycles = Math.floor(totalMinutes / 5);
-    
+
     // Calculate currency based on farm level using config
     const harvestRate = getHarvestRate(farm.level);
-    
+
     const silverEarned = harvestCycles * harvestRate.silver;
     const goldEarned = harvestCycles * harvestRate.gold;
     const platinumEarned = harvestCycles * harvestRate.platinum;
-    
+
     return {
       silverEarned,
       goldEarned,
@@ -47,7 +47,6 @@ export class FarmHarvestService {
     };
   }
 
-
   /**
    * Check if a farm can be harvested (has earned at least some currency)
    * @param farm The farm to check
@@ -55,7 +54,11 @@ export class FarmHarvestService {
    */
   canHarvest(farm: Farm): boolean {
     const result = this.calculateHarvest(farm);
-    return result.silverEarned > 0 || result.goldEarned > 0 || result.platinumEarned > 0;
+    return (
+      result.silverEarned > 0 ||
+      result.goldEarned > 0 ||
+      result.platinumEarned > 0
+    );
   }
 
   /**
@@ -66,13 +69,15 @@ export class FarmHarvestService {
   getTimeUntilNextHarvest(farm: Farm): number {
     const now = new Date();
     const lastHarvest = farm.lastHarvestAt || farm.createdAt;
-    
+
     // Calculate time since last harvest in minutes
-    const timeSinceHarvest = Math.floor((now.getTime() - lastHarvest.getTime()) / (1000 * 60));
-    
+    const timeSinceHarvest = Math.floor(
+      (now.getTime() - lastHarvest.getTime()) / (1000 * 60),
+    );
+
     // Time until next 5-minute cycle completes
     const timeUntilNext = 5 - (timeSinceHarvest % 5);
-    
+
     return timeUntilNext === 5 ? 0 : timeUntilNext;
   }
 }
