@@ -84,6 +84,8 @@ export class UserMapper {
     persistenceSchema.platinum = domainEntity.platinum || 0;
     persistenceSchema.gold = domainEntity.gold || 0;
     persistenceSchema.silver = domainEntity.silver || 0;
+    persistenceSchema.xp = domainEntity.xp || 0;
+    persistenceSchema.level = domainEntity.level || 1;
     persistenceSchema.createdAt = domainEntity.createdAt;
     persistenceSchema.updatedAt = domainEntity.updatedAt;
     persistenceSchema.deletedAt = domainEntity.deletedAt;

@@ -124,9 +124,18 @@ export class UsersDocumentRepository implements UserRepository {
     });
 
     const domainUser = UserMapper.toDomain(user);
+    
+    // Filter out undefined values from payload to avoid overwriting existing values
+    const filteredPayload = Object.entries(clonedPayload).reduce((acc, [key, value]) => {
+      if (value !== undefined) {
+        acc[key] = value;
+      }
+      return acc;
+    }, {} as any);
+    
     const mergedUser = {
       ...domainUser,
-      ...clonedPayload,
+      ...filteredPayload,
     };
 
     console.log('🔀 [USER REPO] Merged user object:', {

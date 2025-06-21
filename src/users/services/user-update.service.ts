@@ -158,6 +158,8 @@ export class UserUpdateService {
       platinum: updateUserDto.platinum,
       gold: updateUserDto.gold,
       silver: updateUserDto.silver,
+      xp: updateUserDto.xp,
+      level: updateUserDto.level,
     };
 
     console.log('📦 [USER UPDATE] Update payload:', updatePayload);
