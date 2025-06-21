@@ -24,37 +24,39 @@ export class RegistrationService {
   ) {}
 
   async register(dto: AuthRegisterLoginDto): Promise<void> {
-    const user = await this.usersService.create({
+    // Create user as active (bypassing email confirmation for now)
+    await this.usersService.create({
       ...dto,
       email: dto.email,
       role: {
         id: RoleEnum.user,
       },
       status: {
-        id: StatusEnum.inactive,
+        id: StatusEnum.active, // Changed from inactive to active
       },
     });
 
-    const hash = await this.jwtService.signAsync(
-      {
-        confirmEmailUserId: user.id,
-      },
-      {
-        secret: this.configService.getOrThrow('auth.confirmEmailSecret', {
-          infer: true,
-        }),
-        expiresIn: this.configService.getOrThrow('auth.confirmEmailExpires', {
-          infer: true,
-        }),
-      },
-    );
+    // TODO: Re-enable email confirmation once mail config is fixed
+    // const hash = await this.jwtService.signAsync(
+    //   {
+    //     confirmEmailUserId: user.id,
+    //   },
+    //   {
+    //     secret: this.configService.getOrThrow('auth.confirmEmailSecret', {
+    //       infer: true,
+    //     }),
+    //     expiresIn: this.configService.getOrThrow('auth.confirmEmailExpires', {
+    //       infer: true,
+    //     }),
+    //   },
+    // );
 
-    await this.mailService.userSignUp({
-      to: dto.email,
-      data: {
-        hash,
-      },
-    });
+    // await this.mailService.userSignUp({
+    //   to: dto.email,
+    //   data: {
+    //     hash,
+    //   },
+    // });
   }
 
   async confirmEmail(hash: string): Promise<void> {
