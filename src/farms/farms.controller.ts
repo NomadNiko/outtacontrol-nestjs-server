@@ -164,6 +164,23 @@ export class FarmsController {
     return this.farmsService.findByOwner(request.user.id);
   }
 
+  @ApiOperation({ summary: 'Get farms by owner (alias)' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'List of farms owned by user.',
+    type: [FarmDto],
+  })
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
+  @Get('my')
+  @HttpCode(HttpStatus.OK)
+  @SerializeOptions({
+    groups: ['admin'],
+  })
+  async getMyFarmsAlias(@Request() request) {
+    return this.farmsService.findByOwner(request.user.id);
+  }
+
   @ApiOperation({ summary: 'Get a farm by ID' })
   @ApiResponse({
     status: HttpStatus.OK,
