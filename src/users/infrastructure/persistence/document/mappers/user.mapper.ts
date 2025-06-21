@@ -37,6 +37,8 @@ export class UserMapper {
     domainEntity.platinum = raw.platinum || 0;
     domainEntity.gold = raw.gold || 0;
     domainEntity.silver = raw.silver || 0;
+    domainEntity.xp = raw.xp || 0;
+    domainEntity.level = raw.level || 1;
     domainEntity.createdAt = raw.createdAt;
     domainEntity.updatedAt = raw.updatedAt;
     domainEntity.deletedAt = raw.deletedAt;
